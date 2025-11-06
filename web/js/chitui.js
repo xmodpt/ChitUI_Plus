@@ -274,8 +274,22 @@ function showPrinter(id) {
   var printerIcon = (p.brand + '_' + p.model).split(" ").join("").toLowerCase()
   $('#printerName').text(p.name)
   $('#printerType').text(p.brand + ' ' + p.model)
-  $("#printerIcon").attr("src", 'img/' + printerIcon + '.webp').removeClass('d-none')
-  $("#printerIconPlaceholder").addClass('d-none')
+
+  // Preload the image to avoid showing broken image icon
+  var imgPath = 'img/' + printerIcon + '.webp'
+  var img = new Image()
+  img.onload = function() {
+    // Image loaded successfully, show it and hide placeholder
+    $("#printerIcon").attr("src", imgPath).removeClass('d-none')
+    $("#printerIconPlaceholder").addClass('d-none')
+  }
+  img.onerror = function() {
+    // Image failed to load, keep placeholder visible
+    console.log('Printer icon not found:', imgPath)
+    $("#printerIcon").addClass('d-none')
+    $("#printerIconPlaceholder").removeClass('d-none')
+  }
+  img.src = imgPath
 
   // Only create tables if data exists
   if (p.status) {
