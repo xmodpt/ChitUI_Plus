@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <script src="js/color-modes.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Chitubox SDCP WebUI" />
+    <meta name="author" content="Jan Grewe" />
+    <title>ChitUI</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+    <link rel="icon" type="image/png" href="/assets/favicon-48x48.png" sizes="48x48" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="shortcut icon" href="/assets/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+    <link rel="manifest" href="/assets/site.webmanifest" />
+    <meta name="theme-color" content="#712cf9" />
+    <link href="css/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="css/chitui.css" rel="stylesheet" />
+  </head>
+  <body>
+    <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+      <symbol id="gear-fill" viewBox="0 0 16 16">
+        <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+      </symbol>
+    </svg>
+
+    <header class="app-header">
+      <div class="d-flex align-items-center gap-2">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+          <i class="bi bi-list"></i>
+        </button>
+        <a href="#" class="app-logo">
+          <i class="bi bi-box-seam"></i>
+          <span>ChitUI</span>
+        </a>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-accent btn-icon d-none" id="btnShowPrintStatus">
+          <i class="bi bi-printer-fill"></i>
+          <span>Print Status</span>
+          <span class="badge bg-light text-dark ms-2" id="printStatusBadge">0%</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="app-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          <i class="bi bi-hdd-network me-1"></i> Printers
+        </div>
+        <div id="printersList"></div>
+      </div>
+    </aside>
+
+    <main class="app-content">
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="printer-preview">
+            <div class="printer-preview-left">
+              <img id="printerIcon" alt="Printer" class="d-none" />
+              <div id="printerIconPlaceholder" class="printer-icon-placeholder">
+                <i class="bi bi-printer" style="font-size: 4rem; color: var(--bs-secondary-color);"></i>
+              </div>
+            </div>
+            <div class="printer-preview-right">
+              <h3 id="printerName">Select a Printer</h3>
+              <p id="printerType">No printer selected</p>
+              <button class="btn btn-outline-secondary btn-icon mt-2" data-bs-toggle="modal" data-bs-target="#modalSettings">
+                <i class="bi bi-gear-fill"></i>
+                <span>Settings</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-8">
+          <div class="dashboard-card">
+            <h4 class="card-title">
+              <i class="bi bi-info-circle me-2"></i>Printer Information
+            </h4>
+            <ul class="nav custom-tabs" role="tablist" id="navTabs"></ul>
+            <div class="tab-content mt-3" id="navPanes"></div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="dashboard-card camera-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h4 class="card-title mb-0">
+                <i class="bi bi-camera-video me-2"></i>Camera Stream
+              </h4>
+              <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-success" id="btnStartCamera">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="btn btn-outline-danger" id="btnStopCamera" disabled>
+                  <i class="bi bi-stop-fill"></i>
+                </button>
+                <button class="btn btn-outline-secondary" id="btnFullscreenCamera" disabled>
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+              </div>
+            </div>
+            <div class="camera-container" id="cameraContainer">
+              <div class="camera-placeholder" id="cameraPlaceholder">
+                <i class="bi bi-camera-video-off" style="font-size: 3rem; color: var(--bs-secondary-color);"></i>
+                <p class="text-muted mt-3 mb-0">Click play to start</p>
+                <small class="text-muted" id="cameraStatus">Camera ready</small>
+              </div>
+              <img id="cameraStream" src="" alt="Camera Stream" style="display: none;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Print Controls Card (visible during active print) -->
+      <div class="row g-3 mb-4 d-none" id="printControlsRow">
+        <div class="col-12">
+          <div class="dashboard-card" style="border: 2px solid var(--accent-color);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h4 class="card-title mb-0">
+                <i class="bi bi-printer-fill me-2"></i>Active Print
+              </h4>
+              <button class="btn btn-sm btn-accent" id="btnShowPrintStatusMain">
+                <i class="bi bi-arrows-fullscreen"></i> Show Details
+              </button>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-8">
+                <div class="mb-2">
+                  <strong>File:</strong> <span id="mainPrintFileName" class="font-monospace">-</span>
+                </div>
+                <div class="mb-2">
+                  <strong>Status:</strong> <span id="mainPrintStatus" class="badge bg-info">-</span>
+                </div>
+                <div class="progress progress-enhanced mb-2" style="height: 30px;">
+                  <div id="mainPrintProgress" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%; font-size: 16px; line-height: 30px;">0%</div>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <small class="text-muted"><i class="bi bi-layers"></i> <span id="mainPrintLayers">0 / 0</span></small>
+                  <small class="text-muted"><i class="bi bi-clock"></i> <span id="mainPrintTime">00:00:00</span></small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column gap-2">
+                  <button type="button" class="btn btn-warning btn-icon" id="btnMainPausePrint">
+                    <i class="bi bi-pause-fill"></i> Pause
+                  </button>
+                  <button type="button" class="btn btn-success btn-icon d-none" id="btnMainResumePrint">
+                    <i class="bi bi-play-fill"></i> Resume
+                  </button>
+                  <button type="button" class="btn btn-danger btn-icon" id="btnMainStopPrint">
+                    <i class="bi bi-stop-fill"></i> Stop
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="dashboard-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h4 class="card-title mb-0">
+                <i class="bi bi-folder2-open me-2"></i>Files
+              </h4>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-accent btn-icon" data-bs-toggle="collapse" data-bs-target="#uploadSection">
+                  <i class="bi bi-cloud-upload"></i>
+                  Upload File
+                </button>
+                <button class="btn btn-sm btn-outline-secondary btn-icon" id="btnRefreshFiles">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  Refresh
+                </button>
+              </div>
+            </div>
+            
+            <div class="collapse mb-3" id="uploadSection">
+              <div class="card bg-body-tertiary">
+                <div class="card-body">
+                  <form enctype="multipart/form-data" method="post" id="formUpload">
+                    <div class="upload-area mb-3">
+                      <i class="bi bi-cloud-arrow-up" style="font-size: 2.5rem; color: var(--bs-secondary-color);"></i>
+                      <h5 class="mt-3 mb-2">Drop file here</h5>
+                      <p class="text-muted mb-3">or click to browse</p>
+                      <input id="uploadFile" class="form-control" type="file" name="file" style="display: none;">
+                      <button type="button" class="btn btn-outline-secondary btn-icon" onclick="document.getElementById('uploadFile').click()">
+                        <i class="bi bi-folder2-open"></i>
+                        Choose File
+                      </button>
+                    </div>
+                    <input id="uploadPrinter" type="hidden" name="printer" value="">
+                    <div class="progress progress-enhanced mb-3" role="progressbar" style="display: none;">
+                      <div id="progressUpload" class="progress-bar" style="width: 0%">0%</div>
+                    </div>
+                    <button id="btnUpload" type="button" class="btn btn-accent btn-icon w-100" style="display: none;">
+                      <i class="bi bi-upload"></i>
+                      Upload to Printer
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            
+            <div class="file-manager-container">
+              <!-- Simple Storage Info -->
+              <div class="alert alert-info d-flex align-items-center justify-content-between mb-3" role="alert" id="storageInfo" style="display: none !important;">
+                <div>
+                  <i class="bi bi-hdd me-2"></i>
+                  <strong>Storage:</strong> <span id="storageUsedSimple">--</span> used / <span id="storageFreeSimple">--</span> available
+                </div>
+                <small class="text-muted">See Settings for details</small>
+              </div>
+              
+              <div class="file-manager-toolbar mb-3">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input type="text" class="form-control" placeholder="Search files..." id="fileSearchInput">
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-hover" id="fileManagerTable">
+                  <thead>
+                    <tr>
+                      <th width="5%">#</th>
+                      <th width="70%"><i class="bi bi-file-earmark me-1"></i>File Name</th>
+                      <th width="25%" class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="fileManagerBody">
+                    <tr>
+                      <td colspan="3" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                        No files found. Upload a file to get started.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="modal fade" id="modalConfirm" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalConfirmTitle">Confirm Action</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            Please confirm that you want to <span id="modalConfirmAction"></span> 
+            <span class="badge bg-secondary font-monospace text-wrap" id="modalConfirmValue"></span>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-accent" id="btnConfirm">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalSettings" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-gear-fill me-2"></i>Settings</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <ul class="nav custom-tabs mb-3" role="tablist">
+              <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#printers-pane" type="button">
+                  <i class="bi bi-printer"></i> Printers
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#storage-pane" type="button">
+                  <i class="bi bi-hdd"></i> Storage
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#general-pane" type="button">
+                  <i class="bi bi-sliders"></i> General
+                </button>
+              </li>
+            </ul>
+            
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="printers-pane">
+                <div class="mb-4">
+                  <h6 class="mb-3">Printer Discovery</h6>
+                  <button type="button" class="btn btn-accent btn-icon" id="btnDiscover">
+                    <i class="bi bi-search"></i> Discover Printers
+                  </button>
+                  <div class="spinner-border spinner-border-sm ms-2 d-none" id="discoverSpinner"></div>
+                </div>
+                <div class="mb-4">
+                  <h6 class="mb-3">Add Printer Manually</h6>
+                  <div class="row g-2">
+                    <div class="col-md-5">
+                      <input type="text" class="form-control" id="manualPrinterIP" placeholder="192.168.1.100">
+                      <small class="text-muted">IP Address</small>
+                    </div>
+                    <div class="col-md-5">
+                      <input type="text" class="form-control" id="manualPrinterName" placeholder="My Printer">
+                      <small class="text-muted">Name (optional)</small>
+                    </div>
+                    <div class="col-md-2">
+                      <button type="button" class="btn btn-success w-100 btn-icon" id="btnAddManual">
+                        <i class="bi bi-plus-lg"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h6 class="mb-3">Saved Printers</h6>
+                  <div id="savedPrintersList">
+                    <div class="text-muted text-center py-4">
+                      <i class="bi bi-info-circle"></i> No printers configured
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="tab-pane fade" id="storage-pane">
+                <div class="mb-4">
+                  <h6 class="mb-3">Printer Storage</h6>
+                  <div class="alert alert-info" id="storageDetailInfo">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                      <div>
+                        <strong>Total Storage:</strong> <span id="storageTotal">--</span>
+                      </div>
+                      <div>
+                        <strong>Used:</strong> <span id="storageUsed">--</span>
+                      </div>
+                      <div>
+                        <strong>Free:</strong> <span id="storageFree">--</span>
+                      </div>
+                    </div>
+                    <div class="progress mb-2" style="height: 25px;">
+                      <div class="progress-bar" role="progressbar" id="storageProgressBar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <span id="storagePercent">0%</span>
+                      </div>
+                    </div>
+                    <small class="text-muted">Storage includes print history, thumbnails, and system data</small>
+                  </div>
+                </div>
+                
+                <div class="mb-4">
+                  <h6 class="mb-3">Clean Up Storage</h6>
+                  <p class="text-muted small mb-3">
+                    <strong>Clean History:</strong> Removes old print history, thumbnails, and cached data. Your .goo files are preserved.
+                  </p>
+                  <button type="button" class="btn btn-warning btn-icon mb-3" id="btnCleanStorage">
+                    <i class="bi bi-trash"></i> Clean History & Cache
+                  </button>
+                  
+                  <hr class="my-4">
+                  
+                  <h6 class="mb-3 text-danger">Danger Zone</h6>
+                  <p class="text-muted small mb-3">
+                    <strong>Format Local Storage:</strong> Formats the printer's internal storage, deleting ALL files including .goo files. Same as the "Format Local Storage" button on the printer.
+                  </p>
+                  <button type="button" class="btn btn-danger btn-icon" id="btnWipeStorage">
+                    <i class="bi bi-exclamation-triangle"></i> Format Local Storage
+                  </button>
+                </div>
+                
+                <div class="alert alert-warning" role="alert">
+                  <i class="bi bi-exclamation-triangle me-2"></i>
+                  <strong>Note:</strong> Storage info updates automatically every few seconds when connected to a printer.
+                </div>
+              </div>
+              
+              <div class="tab-pane fade" id="general-pane">
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" id="autoDiscoverCheck">
+                  <label class="form-check-label" for="autoDiscoverCheck">
+                    Auto-discover printers on startup
+                  </label>
+                </div>
+                <small class="text-muted">Automatically search for printers when the application starts</small>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-accent btn-icon" id="btnSaveSettings">
+              <i class="bi bi-save"></i> Save Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalPrintStatus" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+          <div class="modal-header" style="background: var(--accent-color); color: white;">
+            <h5 class="modal-title"><i class="bi bi-printer-fill me-2"></i>Print Status</h5>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-sm btn-light" id="btnPrintCamera" disabled>
+                <i class="bi bi-camera-video"></i><span class="d-none d-sm-inline"> Camera</span>
+              </button>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <!-- Thumbnail Column -->
+              <div class="col-12 col-md-5 mb-3 mb-md-0">
+                <div id="printThumbnailContainer" class="print-thumbnail-container">
+                  <div id="printThumbnailPlaceholder" class="print-thumbnail-placeholder">
+                    <i class="bi bi-image" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="text-muted small mb-0">No preview available</p>
+                  </div>
+                  <img id="printThumbnail" class="print-thumbnail d-none" alt="Print preview" loading="lazy">
+                </div>
+                <!-- Camera View (shown when camera is active) -->
+                <div id="printCameraContainer" class="print-camera-container d-none">
+                  <img id="printCameraView" src="/camera/video" alt="Camera view" class="print-camera-view" loading="lazy">
+                </div>
+              </div>
+
+              <!-- Print Info Column -->
+              <div class="col-12 col-md-7">
+                <div class="mb-3">
+                  <h6 class="text-muted mb-1">Status</h6>
+                  <h4 id="printStatusText">Initializing...</h4>
+                </div>
+                <div class="mb-3">
+                  <h6 class="text-muted mb-1">File</h6>
+                  <p id="printFileName" class="font-monospace mb-0 small">-</p>
+                </div>
+                <div class="mb-3">
+                  <h6 class="text-muted mb-1">Progress</h6>
+                  <div class="progress progress-enhanced mb-2">
+                    <div id="printProgress" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <small class="text-muted"><i class="bi bi-layers"></i> <span id="printLayers">0 / 0</span></small>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <small class="text-muted"><i class="bi bi-clock"></i> <span id="printTime">00:00:00 / 00:00:00</span></small>
+                  </div>
+                </div>
+                <div id="printError" class="alert alert-danger d-none" role="alert">
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                  <span id="printErrorText">Error information</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-warning btn-icon" id="btnPausePrint">
+              <i class="bi bi-pause-fill"></i> Pause
+            </button>
+            <button type="button" class="btn btn-success btn-icon d-none" id="btnResumePrint">
+              <i class="bi bi-play-fill"></i> Resume
+            </button>
+            <button type="button" class="btn btn-danger btn-icon" id="btnStopPrint">
+              <i class="bi bi-stop-fill"></i> Stop
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Camera Fullscreen Modal -->
+    <div class="modal fade" id="modalCameraFullscreen" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-camera-video me-2"></i>Camera Stream
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center p-0">
+            <img id="cameraStreamFullscreen" src="" alt="Camera Stream" style="width: 640px; height: 480px; display: block; margin: 0 auto;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastUpload" class="toast position-fixed top-0 end-0 m-3" role="alert">
+      <div class="toast-header">
+        <i class="bi bi-file-earmark-arrow-up me-2"></i>
+        <strong class="me-auto">File Upload</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+      </div>
+      <div class="toast-body" id="toastUploadText">Success!</div>
+    </div>
+
+    <template id="tmplPrintersListItem">
+      <div class="printer-card" data-connection-id="" data-printer-id="">
+        <div class="printer-card-header">
+          <img class="printerIcon printer-icon" src="" alt="Printer" />
+          <div class="flex-grow-1">
+            <h6 class="printerName printer-name mb-1"></h6>
+            <small class="printerType text-muted"></small>
+          </div>
+          <span class="printer-status-badge printerStatusBadge status-online">
+            <i class="bi bi-circle-fill"></i>
+            <span class="printerStatus">Online</span>
+          </span>
+        </div>
+        <div class="printerInfo mt-2">
+          <small class="text-muted">Idle</small>
+        </div>
+        <div class="printerSpinner spinner-border spinner-border-sm d-none"></div>
+      </div>
+    </template>
+
+    <template id="tmplNavTab">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" type="button" role="tab"></button>
+      </li>
+    </template>
+
+    <template id="tmplNavPane">
+      <div class="tab-pane" role="tabpanel" tabindex="0">
+        <table class="table">
+          <tbody></tbody>
+        </table>
+      </div>
+    </template>
+
+    <template id="tmplSavedPrinter">
+      <div class="dashboard-card mb-2" data-printer-id="">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="mb-1 printer-name"></h6>
+            <small class="text-muted printer-ip"></small>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <div class="form-check form-switch">
+              <input class="form-check-input printer-enabled-toggle" type="checkbox" checked>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger btn-icon btn-remove-printer">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script src="js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="js/jquery-3.7.1.min.js"></script>
+    <script src="js/socket.io.min.js"></script>
+    <script src="js/sdcp.js"></script>
+
+    <script src="/js/chitui.js"></script>
+    <script src="js/settings.js"></script>
+
+  </body>
+</html>
