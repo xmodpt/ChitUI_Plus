@@ -258,7 +258,15 @@ function addPrinters(printers) {
     item.attr("data-printer-id", id)
     item.find(".printerName").text(printer.name)
     item.find(".printerType").text(printer.brand + ' ' + printer.model)
-    item.find(".printerIcon").attr("src", 'img/' + printerIcon + '.webp')
+
+    // Set printer icon with error handling to avoid broken image icons
+    var iconImg = item.find(".printerIcon")
+    iconImg.attr("src", 'img/' + printerIcon + '.webp')
+    iconImg.on('error', function() {
+      // Hide the image if it fails to load
+      $(this).hide()
+    })
+
     item.on('click', function () {
       showPrinter($(this).data('printer-id'))
     })
@@ -274,6 +282,10 @@ function showPrinter(id) {
   var printerIcon = (p.brand + '_' + p.model).split(" ").join("").toLowerCase()
   $('#printerName').text(p.name)
   $('#printerType').text(p.brand + ' ' + p.model)
+
+  // Hide image and show placeholder while loading
+  $("#printerIcon").addClass('d-none').attr('src', '')
+  $("#printerIconPlaceholder").removeClass('d-none')
 
   // Preload the image to avoid showing broken image icon
   var imgPath = 'img/' + printerIcon + '.webp'
