@@ -198,6 +198,63 @@ function disablePlugin(pluginId) {
 }
 
 /**
+ * Delete a plugin
+ */
+function deletePlugin(pluginId, pluginName) {
+  if (!confirm(`Are you sure you want to delete the plugin "${pluginName}"? This cannot be undone.`)) {
+    return;
+  }
+
+  return fetch(`/plugins/${pluginId}/delete`, { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        console.log(`Plugin ${pluginId} deleted`);
+        alert(`Plugin "${pluginName}" deleted successfully`);
+        // Reload page
+        window.location.reload();
+      } else {
+        console.error(`Failed to delete plugin: ${data.message}`);
+        alert(`Failed to delete plugin: ${data.message}`);
+      }
+    })
+    .catch(error => {
+      console.error('Error deleting plugin:', error);
+      alert(`Error deleting plugin: ${error}`);
+    });
+}
+
+/**
+ * Upload a plugin
+ */
+function uploadPlugin(file) {
+  const formData = new FormData();
+  formData.append('plugin', file);
+
+  return fetch('/plugins/upload', {
+    method: 'POST',
+    body: formData
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        console.log('Plugin uploaded successfully');
+        alert(`${data.message}`);
+        // Reload page to show the new plugin
+        window.location.reload();
+      } else {
+        console.error(`Failed to upload plugin: ${data.message}`);
+        alert(`Failed to upload plugin: ${data.message}`);
+      }
+      return data;
+    })
+    .catch(error => {
+      console.error('Error uploading plugin:', error);
+      alert(`Error uploading plugin: ${error}`);
+    });
+}
+
+/**
  * Render plugin manager UI
  */
 function renderPluginManager() {
@@ -207,10 +264,48 @@ function renderPluginManager() {
 
     container.innerHTML = '';
 
+    // Add upload section
+    const uploadSection = document.createElement('div');
+    uploadSection.className = 'card mb-3 bg-dark border-secondary';
+    uploadSection.innerHTML = `
+      <div class="card-body">
+        <h6 class="card-title"><i class="bi bi-upload me-2"></i>Install New Plugin</h6>
+        <p class="text-muted small mb-3">
+          Upload a plugin ZIP file to install it. The plugin will be available after reloading the page.
+        </p>
+        <div class="input-group">
+          <input type="file" class="form-control" id="pluginFileInput" accept=".zip">
+          <button class="btn btn-primary" id="btnUploadPlugin">
+            <i class="bi bi-upload"></i> Upload
+          </button>
+        </div>
+      </div>
+    `;
+    container.appendChild(uploadSection);
+
+    // Add upload button handler
+    document.getElementById('btnUploadPlugin').addEventListener('click', function() {
+      const fileInput = document.getElementById('pluginFileInput');
+      if (fileInput.files.length === 0) {
+        alert('Please select a plugin ZIP file');
+        return;
+      }
+      uploadPlugin(fileInput.files[0]);
+    });
+
     if (plugins.length === 0) {
-      container.innerHTML = '<p class="text-muted">No plugins available</p>';
+      const noPlugins = document.createElement('p');
+      noPlugins.className = 'text-muted text-center py-3';
+      noPlugins.textContent = 'No plugins installed yet';
+      container.appendChild(noPlugins);
       return;
     }
+
+    // Add installed plugins section
+    const installedHeader = document.createElement('h6');
+    installedHeader.className = 'mt-4 mb-3';
+    installedHeader.innerHTML = '<i class="bi bi-puzzle me-2"></i>Installed Plugins';
+    container.appendChild(installedHeader);
 
     plugins.forEach(plugin => {
       const card = document.createElement('div');
@@ -218,23 +313,28 @@ function renderPluginManager() {
       card.innerHTML = `
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h5 class="card-title">${plugin.name}</h5>
-              <p class="card-text text-muted small">${plugin.description}</p>
-              <p class="card-text">
+            <div class="flex-grow-1">
+              <h5 class="card-title mb-1">${plugin.name}</h5>
+              <p class="card-text text-muted small mb-2">${plugin.description || 'No description'}</p>
+              <p class="card-text mb-0">
                 <small class="text-muted">
-                  Version: ${plugin.version} | Author: ${plugin.author}
+                  Version: ${plugin.version} | Author: ${plugin.author} | ID: ${plugin.id}
                 </small>
               </p>
             </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox"
-                     id="plugin-toggle-${plugin.id}"
-                     ${plugin.enabled ? 'checked' : ''}
-                     onchange="togglePlugin('${plugin.id}', this.checked)">
-              <label class="form-check-label" for="plugin-toggle-${plugin.id}">
-                ${plugin.enabled ? 'Enabled' : 'Disabled'}
-              </label>
+            <div class="d-flex align-items-center gap-2">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox"
+                       id="plugin-toggle-${plugin.id}"
+                       ${plugin.enabled ? 'checked' : ''}
+                       onchange="togglePlugin('${plugin.id}', this.checked)">
+                <label class="form-check-label" for="plugin-toggle-${plugin.id}">
+                  ${plugin.enabled ? 'Enabled' : 'Disabled'}
+                </label>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="deletePlugin('${plugin.id}', '${plugin.name}')">
+                <i class="bi bi-trash"></i>
+              </button>
             </div>
           </div>
         </div>

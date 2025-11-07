@@ -570,6 +570,124 @@ def disable_plugin(plugin_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@app.route('/plugins/<plugin_id>/delete', methods=['POST'])
+def delete_plugin(plugin_id):
+    """Delete a plugin"""
+    try:
+        import shutil
+        plugin_path = os.path.join(plugin_manager.plugins_dir, plugin_id)
+        if os.path.exists(plugin_path):
+            # Disable first
+            plugin_manager.disable_plugin(plugin_id)
+            # Delete directory
+            shutil.rmtree(plugin_path)
+            return jsonify({"success": True, "message": f"Plugin {plugin_id} deleted"})
+        else:
+            return jsonify({"success": False, "message": "Plugin not found"}), 404
+    except Exception as e:
+        logger.error(f"Error deleting plugin {plugin_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/plugins/upload', methods=['POST'])
+def upload_plugin():
+    """Upload and install a plugin from ZIP file"""
+    import zipfile
+    import tempfile
+
+    try:
+        if 'plugin' not in request.files:
+            return jsonify({"success": False, "message": "No plugin file provided"}), 400
+
+        plugin_file = request.files['plugin']
+
+        if plugin_file.filename == '':
+            return jsonify({"success": False, "message": "No file selected"}), 400
+
+        if not plugin_file.filename.endswith('.zip'):
+            return jsonify({"success": False, "message": "Plugin must be a ZIP file"}), 400
+
+        # Create temp directory for extraction
+        with tempfile.TemporaryDirectory() as temp_dir:
+            zip_path = os.path.join(temp_dir, 'plugin.zip')
+            plugin_file.save(zip_path)
+
+            # Extract ZIP
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+
+            # Find the plugin directory (should be the only directory in temp_dir)
+            extracted_items = [item for item in os.listdir(temp_dir) if item != 'plugin.zip']
+
+            if len(extracted_items) != 1 or not os.path.isdir(os.path.join(temp_dir, extracted_items[0])):
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid plugin structure. ZIP must contain a single directory."
+                }), 400
+
+            plugin_dir_name = extracted_items[0]
+            extracted_plugin_path = os.path.join(temp_dir, plugin_dir_name)
+
+            # Validate plugin structure
+            manifest_path = os.path.join(extracted_plugin_path, 'plugin.json')
+            init_path = os.path.join(extracted_plugin_path, '__init__.py')
+
+            if not os.path.exists(manifest_path):
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid plugin: missing plugin.json"
+                }), 400
+
+            if not os.path.exists(init_path):
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid plugin: missing __init__.py"
+                }), 400
+
+            # Read and validate manifest
+            with open(manifest_path, 'r') as f:
+                manifest = json.load(f)
+
+            required_fields = ['name', 'version', 'author']
+            for field in required_fields:
+                if field not in manifest:
+                    return jsonify({
+                        "success": False,
+                        "message": f"Invalid plugin.json: missing '{field}' field"
+                    }), 400
+
+            # Check if plugin already exists
+            target_path = os.path.join(plugin_manager.plugins_dir, plugin_dir_name)
+            if os.path.exists(target_path):
+                return jsonify({
+                    "success": False,
+                    "message": f"Plugin '{plugin_dir_name}' already exists. Delete it first to reinstall."
+                }), 409
+
+            # Copy plugin to plugins directory
+            import shutil
+            shutil.copytree(extracted_plugin_path, target_path)
+
+            logger.info(f"Plugin {plugin_dir_name} installed successfully")
+
+            return jsonify({
+                "success": True,
+                "message": f"Plugin '{manifest['name']}' installed successfully. Reload the page to use it.",
+                "plugin_id": plugin_dir_name,
+                "plugin_name": manifest['name']
+            })
+
+    except zipfile.BadZipFile:
+        return jsonify({"success": False, "message": "Invalid ZIP file"}), 400
+    except json.JSONDecodeError:
+        return jsonify({"success": False, "message": "Invalid plugin.json format"}), 400
+    except Exception as e:
+        logger.error(f"Error uploading plugin: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route('/plugins/ui', methods=['GET'])
 def get_plugin_ui():
     """Get UI integration for all loaded plugins"""

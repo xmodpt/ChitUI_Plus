@@ -1,0 +1,13 @@
+{
+  "name": "Plugin Template",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "description": "A template for creating ChitUI plugins",
+  "dependencies": [],
+  "ui_integration": {
+    "type": "card",
+    "location": "main",
+    "icon": "bi-puzzle",
+    "title": "My Plugin"
+  }
+}
