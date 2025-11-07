@@ -1,4 +1,4 @@
-from flask import Flask, Response, request, stream_with_context, jsonify, send_file
+from flask import Flask, Response, request, stream_with_context, jsonify, send_file, render_template_string
 from werkzeug.utils import secure_filename
 from flask_socketio import SocketIO
 from threading import Thread
@@ -14,6 +14,9 @@ import hashlib
 import uuid
 import threading
 import subprocess
+
+# Plugin system imports
+from plugins import PluginManager
 
 # Camera imports
 try:
@@ -43,6 +46,9 @@ app = Flask(__name__,
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 websockets = {}
 printers = {}
+
+# ===== Plugin System =====
+plugin_manager = PluginManager(os.path.join(os.path.dirname(__file__), 'plugins'))
 
 # ===== Storage Configuration =====
 # USB Gadget folder - where files are saved so printer can access them as USB storage
@@ -529,6 +535,59 @@ def get_status():
         "data_folder": DATA_FOLDER,
         "camera_support": CAMERA_SUPPORT
     })
+
+
+# ===== Plugin Management API =====
+
+@app.route('/plugins', methods=['GET'])
+def get_plugins():
+    """Get list of all plugins"""
+    return jsonify(plugin_manager.get_plugin_info())
+
+
+@app.route('/plugins/<plugin_id>/enable', methods=['POST'])
+def enable_plugin(plugin_id):
+    """Enable a plugin"""
+    try:
+        plugin_manager.enable_plugin(plugin_id)
+        # Load the plugin if not already loaded
+        if plugin_id not in plugin_manager.get_all_plugins():
+            plugin_manager.load_plugin(plugin_id, app, socketio)
+        return jsonify({"success": True, "message": f"Plugin {plugin_id} enabled"})
+    except Exception as e:
+        logger.error(f"Error enabling plugin {plugin_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/plugins/<plugin_id>/disable', methods=['POST'])
+def disable_plugin(plugin_id):
+    """Disable a plugin"""
+    try:
+        plugin_manager.disable_plugin(plugin_id)
+        return jsonify({"success": True, "message": f"Plugin {plugin_id} disabled"})
+    except Exception as e:
+        logger.error(f"Error disabling plugin {plugin_id}: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/plugins/ui', methods=['GET'])
+def get_plugin_ui():
+    """Get UI integration for all loaded plugins"""
+    ui_elements = []
+    for plugin_name, plugin in plugin_manager.get_all_plugins().items():
+        ui_config = plugin.get_ui_integration()
+        if ui_config:
+            template_file = ui_config.get('template')
+            if template_file:
+                template_path = os.path.join(plugin.get_template_folder(), template_file)
+                if os.path.exists(template_path):
+                    with open(template_path, 'r') as f:
+                        ui_config['html'] = f.read()
+
+            ui_config['plugin_id'] = plugin_name
+            ui_elements.append(ui_config)
+
+    return jsonify(ui_elements)
 
 
 @app.route('/discover', methods=['POST'])
@@ -1123,6 +1182,12 @@ def ws_msg_handler(ws, msg):
     try:
         data = json.loads(msg)
         logger.debug("printer >> \n{m}", m=json.dumps(data, indent=4))
+
+        # Notify plugins of printer message
+        printer_id = data.get('MainboardID')
+        if printer_id:
+            plugin_manager.notify_printer_message(printer_id, data)
+
         if data['Topic'].startswith("sdcp/response/"):
             socketio.emit('printer_response', data)
         elif data['Topic'].startswith("sdcp/status/"):
@@ -1172,7 +1237,11 @@ def load_saved_printers():
 
 def main():
     settings = load_settings()
-    
+
+    # Load plugins
+    logger.info("Loading plugins...")
+    plugin_manager.load_all_plugins(app, socketio)
+
     if settings.get("auto_discover", True):
         logger.info("Starting with auto-discovery enabled")
         discovered = discover_printers()
@@ -1181,7 +1250,7 @@ def main():
             socketio.emit('printers', printers)
         else:
             logger.warning("No printers discovered.")
-    
+
     load_saved_printers()
 
 

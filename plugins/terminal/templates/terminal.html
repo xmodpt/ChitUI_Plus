@@ -1,0 +1,229 @@
+<!-- Terminal Plugin UI -->
+<div class="card terminal-card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="bi bi-terminal"></i> Terminal
+    </h5>
+    <div>
+      <button class="btn btn-sm btn-outline-secondary" id="terminalClear">
+        <i class="bi bi-x-circle"></i> Clear
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" id="terminalToggleScroll">
+        <i class="bi bi-arrow-down-circle"></i> Auto-scroll
+      </button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="terminal-output" id="terminalOutput">
+      <div class="terminal-welcome">
+        ChitUI Terminal - Ready
+        <br>
+        Monitoring printer communication...
+      </div>
+    </div>
+    <div class="terminal-input-container">
+      <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input
+          type="text"
+          class="form-control"
+          id="terminalInput"
+          placeholder="Enter raw command (JSON)..."
+          autocomplete="off"
+        >
+        <button class="btn btn-primary" id="terminalSend">
+          <i class="bi bi-send"></i> Send
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.terminal-card {
+  margin-top: 1rem;
+  background-color: var(--bs-dark);
+  border-color: var(--bs-secondary);
+}
+
+.terminal-output {
+  height: 400px;
+  overflow-y: auto;
+  background-color: #1a1d20;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--bs-secondary);
+}
+
+.terminal-welcome {
+  color: #888;
+  margin-bottom: 1rem;
+}
+
+.terminal-message {
+  margin-bottom: 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.terminal-timestamp {
+  color: #666;
+  margin-right: 0.5rem;
+}
+
+.terminal-direction {
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.terminal-direction.send {
+  color: #ffa500;
+}
+
+.terminal-direction.recv {
+  color: #00ff00;
+}
+
+.terminal-printer-id {
+  color: #00bfff;
+  margin-right: 0.5rem;
+}
+
+.terminal-input-container {
+  padding: 0.75rem;
+  background-color: #2a2d30;
+}
+
+.terminal-input-container .input-group-text {
+  background-color: #1a1d20;
+  color: #00ff00;
+  border-color: var(--bs-secondary);
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+.terminal-input-container .form-control {
+  background-color: #1a1d20;
+  color: #00ff00;
+  border-color: var(--bs-secondary);
+  font-family: 'Courier New', monospace;
+}
+
+.terminal-input-container .form-control:focus {
+  background-color: #1a1d20;
+  color: #00ff00;
+  border-color: #00ff00;
+  box-shadow: 0 0 0 0.25rem rgba(0, 255, 0, 0.25);
+}
+</style>
+
+<script>
+(function() {
+  let autoScroll = true;
+  const output = document.getElementById('terminalOutput');
+  const input = document.getElementById('terminalInput');
+
+  // Auto-scroll toggle
+  document.getElementById('terminalToggleScroll').addEventListener('click', function() {
+    autoScroll = !autoScroll;
+    this.classList.toggle('active', autoScroll);
+  });
+
+  // Clear button
+  document.getElementById('terminalClear').addEventListener('click', function() {
+    output.innerHTML = '<div class="terminal-welcome">Terminal cleared</div>';
+    fetch('/plugin/terminal/clear', { method: 'POST' });
+  });
+
+  // Send command
+  function sendCommand() {
+    const command = input.value.trim();
+    if (!command) return;
+
+    if (!currentPrinter) {
+      addLocalMessage('ERROR: No printer selected');
+      return;
+    }
+
+    // Try to parse as JSON
+    try {
+      const parsed = JSON.parse(command);
+      socket.emit('terminal_send_command', {
+        printer_id: currentPrinter,
+        command: parsed
+      });
+    } catch (e) {
+      // If not JSON, send as-is
+      socket.emit('terminal_send_command', {
+        printer_id: currentPrinter,
+        command: command
+      });
+    }
+
+    input.value = '';
+  }
+
+  document.getElementById('terminalSend').addEventListener('click', sendCommand);
+  input.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      sendCommand();
+    }
+  });
+
+  // Listen for terminal messages
+  socket.on('terminal_message', function(data) {
+    const msg = document.createElement('div');
+    msg.className = 'terminal-message';
+
+    const direction = data.direction.toLowerCase();
+    const directionClass = direction === 'send' ? 'send' : 'recv';
+    const directionText = direction === 'send' ? '>>>' : '<<<';
+
+    msg.innerHTML = `
+      <span class="terminal-timestamp">[${data.timestamp}]</span>
+      <span class="terminal-direction ${directionClass}">${directionText}</span>
+      <span class="terminal-printer-id">${data.printer_id.substring(0, 8)}</span>
+      <span class="terminal-content">${escapeHtml(data.message)}</span>
+    `;
+
+    output.appendChild(msg);
+
+    if (autoScroll) {
+      output.scrollTop = output.scrollHeight;
+    }
+  });
+
+  // Add local message (not from socket)
+  function addLocalMessage(message) {
+    const msg = document.createElement('div');
+    msg.className = 'terminal-message';
+    msg.innerHTML = `<span class="terminal-timestamp">[${getCurrentTime()}]</span><span style="color: #ff0000;">${escapeHtml(message)}</span>`;
+    output.appendChild(msg);
+    if (autoScroll) {
+      output.scrollTop = output.scrollHeight;
+    }
+  }
+
+  function getCurrentTime() {
+    const now = new Date();
+    return now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Load existing messages on startup
+  fetch('/plugin/terminal/messages')
+    .then(r => r.json())
+    .then(data => {
+      data.messages.forEach(msg => {
+        socket.emit('terminal_message', msg);
+      });
+    });
+})();
+</script>

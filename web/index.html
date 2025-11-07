@@ -294,6 +294,11 @@
                   <i class="bi bi-sliders"></i> General
                 </button>
               </li>
+              <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#plugins-pane" type="button">
+                  <i class="bi bi-puzzle"></i> Plugins
+                </button>
+              </li>
             </ul>
             
             <div class="tab-content">
@@ -391,6 +396,27 @@
                   </label>
                 </div>
                 <small class="text-muted">Automatically search for printers when the application starts</small>
+              </div>
+
+              <div class="tab-pane fade" id="plugins-pane">
+                <div class="mb-3">
+                  <h6>Plugin Management</h6>
+                  <p class="text-muted small">
+                    Extend ChitUI with plugins. Enable or disable plugins to add features like terminal access,
+                    custom printers support, and more.
+                  </p>
+                </div>
+                <div id="pluginManagerList">
+                  <div class="text-center py-4">
+                    <div class="spinner-border text-secondary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="alert alert-info mt-3">
+                  <i class="bi bi-info-circle me-2"></i>
+                  <strong>Note:</strong> Enabling or disabling plugins will reload the page to apply changes.
+                </div>
               </div>
             </div>
           </div>
@@ -563,6 +589,7 @@
 
     <script src="/js/chitui.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/plugins.js"></script>
 
   </body>
 </html>
