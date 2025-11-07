@@ -553,7 +553,18 @@ function fillTable(table, data) {
     return;
   }
 
-  // Regular table layout for other tabs
+  // Special handling for Files tab (array of filenames)
+  if (table === 'Files') {
+    if (Array.isArray(data)) {
+      $.each(data, function (index, filename) {
+        var row = $('<tr data-file="' + filename + '"><td class="fieldKey">' + index + '</td><td class="fieldValue">' + filename + '</td></tr>');
+        t.append(row);
+      });
+    }
+    return;
+  }
+
+  // Regular table layout for other tabs (object with key-value pairs)
   $.each(data, function (key, val) {
     // Format the value
     var formattedVal = formatDisplayValue(key, val, table);
