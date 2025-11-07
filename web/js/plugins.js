@@ -80,24 +80,31 @@ function injectCard(plugin) {
  * Inject a plugin into the toolbar
  */
 function injectToolbar(plugin) {
-  const toolbar = document.querySelector('.toolbar'); // Adjust selector as needed
-  if (!toolbar) {
-    console.error('Toolbar not found');
+  // Look for the printer preview section as a reference point
+  const printerPreview = document.querySelector('.printer-preview');
+  if (!printerPreview) {
+    console.error('Printer preview section not found, cannot inject toolbar');
     return;
   }
 
-  const button = document.createElement('button');
-  button.className = 'btn btn-sm btn-outline-secondary';
-  button.innerHTML = `<i class="${plugin.icon}"></i> ${plugin.title}`;
-  button.onclick = () => {
-    // Toggle plugin visibility or open modal
-    const pluginEl = document.getElementById(`plugin-${plugin.plugin_id}`);
-    if (pluginEl) {
-      pluginEl.classList.toggle('d-none');
-    }
-  };
+  // Create a toolbar container if it doesn't exist
+  let toolbarContainer = document.getElementById('plugin-toolbar-container');
+  if (!toolbarContainer) {
+    toolbarContainer = document.createElement('div');
+    toolbarContainer.id = 'plugin-toolbar-container';
+    toolbarContainer.className = 'd-flex gap-2 mt-3';
 
-  toolbar.appendChild(button);
+    // Insert toolbar container after printer preview
+    printerPreview.parentNode.insertBefore(toolbarContainer, printerPreview.nextSibling);
+  }
+
+  // Create plugin container and inject HTML
+  const pluginDiv = document.createElement('div');
+  pluginDiv.id = `plugin-toolbar-${plugin.plugin_id}`;
+  pluginDiv.className = 'plugin-toolbar-item';
+  pluginDiv.innerHTML = plugin.html;
+
+  toolbarContainer.appendChild(pluginDiv);
 }
 
 /**

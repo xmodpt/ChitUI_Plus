@@ -1,0 +1,13 @@
+{
+  "name": "Toolbar Demo",
+  "version": "1.0.0",
+  "author": "ChitUI",
+  "description": "Demonstrates toolbar button integration with 3 example buttons",
+  "dependencies": [],
+  "ui_integration": {
+    "type": "toolbar",
+    "location": "main",
+    "icon": "bi-stars",
+    "title": "Toolbar Demo"
+  }
+}

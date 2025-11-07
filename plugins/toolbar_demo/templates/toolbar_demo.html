@@ -1,0 +1,267 @@
+<!-- Toolbar Demo Plugin - 3 Button Toolbar -->
+
+<!-- Toolbar Container (inserted into main page toolbar area) -->
+<div class="toolbar-demo-container d-flex gap-2 align-items-center ms-3">
+  <!-- Button 1: Info -->
+  <button class="btn btn-sm btn-outline-info" id="toolbarBtn1" data-bs-toggle="tooltip" title="Show Info">
+    <i class="bi bi-info-circle"></i> Info
+  </button>
+
+  <!-- Button 2: Stats -->
+  <button class="btn btn-sm btn-outline-success" id="toolbarBtn2" data-bs-toggle="tooltip" title="View Statistics">
+    <i class="bi bi-graph-up"></i> Stats
+  </button>
+
+  <!-- Button 3: Settings -->
+  <button class="btn btn-sm btn-outline-warning" id="toolbarBtn3" data-bs-toggle="tooltip" title="Quick Settings">
+    <i class="bi bi-sliders"></i> Quick
+  </button>
+</div>
+
+<!-- Modal for displaying plugin info -->
+<div class="modal fade" id="toolbarDemoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="toolbarDemoModalTitle">
+          <i class="bi bi-stars"></i> Toolbar Demo
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="toolbarDemoModalBody">
+        <p class="text-muted">Loading...</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Toolbar demo styles */
+.toolbar-demo-container {
+  border-left: 2px solid var(--bs-border-color);
+  padding-left: 1rem;
+}
+
+.toolbar-demo-container .btn {
+  min-width: 80px;
+  transition: all 0.2s ease;
+}
+
+.toolbar-demo-container .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.toolbar-demo-container .btn i {
+  margin-right: 4px;
+}
+</style>
+
+<script>
+(function() {
+  console.log('Toolbar Demo plugin loaded');
+
+  // Initialize Bootstrap tooltips
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+
+  // Initialize modal
+  const demoModal = new bootstrap.Modal(document.getElementById('toolbarDemoModal'));
+
+  // Button 1: Show Info
+  document.getElementById('toolbarBtn1').addEventListener('click', function() {
+    console.log('Info button clicked');
+
+    // Track click
+    fetch('/plugin/toolbar_demo/click/button1', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        showModal(
+          '<i class="bi bi-info-circle me-2"></i>Plugin Information',
+          `
+            <div class="alert alert-info">
+              <h6>Toolbar Demo Plugin</h6>
+              <p>This plugin demonstrates how to add toolbar buttons to ChitUI.</p>
+              <hr>
+              <p class="mb-0"><strong>Click count:</strong> ${data.count}</p>
+            </div>
+            <h6>Features:</h6>
+            <ul>
+              <li>3 example toolbar buttons</li>
+              <li>Modal dialogs</li>
+              <li>API endpoints</li>
+              <li>SocketIO integration</li>
+              <li>Click tracking</li>
+            </ul>
+          `
+        );
+      });
+  });
+
+  // Button 2: Show Stats
+  document.getElementById('toolbarBtn2').addEventListener('click', function() {
+    console.log('Stats button clicked');
+
+    // Track click
+    fetch('/plugin/toolbar_demo/click/button2', { method: 'POST' })
+      .then(r => r.json())
+      .then(() => {
+        // Get all stats
+        return fetch('/plugin/toolbar_demo/stats');
+      })
+      .then(r => r.json())
+      .then(stats => {
+        const total = stats.button1 + stats.button2 + stats.button3;
+        showModal(
+          '<i class="bi bi-graph-up me-2"></i>Button Statistics',
+          `
+            <div class="alert alert-success">
+              <h6>Click Statistics</h6>
+              <p class="mb-0">Total clicks across all buttons: <strong>${total}</strong></p>
+            </div>
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Button</th>
+                  <th>Clicks</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><i class="bi bi-info-circle text-info"></i> Info</td>
+                  <td>${stats.button1}</td>
+                  <td>${total > 0 ? Math.round(stats.button1/total*100) : 0}%</td>
+                </tr>
+                <tr>
+                  <td><i class="bi bi-graph-up text-success"></i> Stats</td>
+                  <td>${stats.button2}</td>
+                  <td>${total > 0 ? Math.round(stats.button2/total*100) : 0}%</td>
+                </tr>
+                <tr>
+                  <td><i class="bi bi-sliders text-warning"></i> Quick</td>
+                  <td>${stats.button3}</td>
+                  <td>${total > 0 ? Math.round(stats.button3/total*100) : 0}%</td>
+                </tr>
+              </tbody>
+            </table>
+          `
+        );
+      });
+  });
+
+  // Button 3: Quick Settings
+  document.getElementById('toolbarBtn3').addEventListener('click', function() {
+    console.log('Quick Settings button clicked');
+
+    // Track click
+    fetch('/plugin/toolbar_demo/click/button3', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        showModal(
+          '<i class="bi bi-sliders me-2"></i>Quick Settings',
+          `
+            <div class="alert alert-warning">
+              <h6>Quick Access Settings</h6>
+              <p>This is a demo of quick settings accessible from the toolbar.</p>
+              <hr>
+              <p class="mb-0"><strong>Click count:</strong> ${data.count}</p>
+            </div>
+            <h6>Example Settings:</h6>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="demoSetting1" checked>
+              <label class="form-check-label" for="demoSetting1">
+                Enable notifications
+              </label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="demoSetting2">
+              <label class="form-check-label" for="demoSetting2">
+                Auto-refresh data
+              </label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="demoSetting3" checked>
+              <label class="form-check-label" for="demoSetting3">
+                Show advanced options
+              </label>
+            </div>
+            <hr>
+            <p class="text-muted small mb-0">
+              <i class="bi bi-lightbulb"></i>
+              These are example settings. In a real plugin, you would save these preferences.
+            </p>
+          `
+        );
+      });
+  });
+
+  // Helper function to show modal
+  function showModal(title, body) {
+    document.getElementById('toolbarDemoModalTitle').innerHTML = title;
+    document.getElementById('toolbarDemoModalBody').innerHTML = body;
+    demoModal.show();
+  }
+
+  // Example: Send action via SocketIO
+  function sendAction(action) {
+    socket.emit('toolbar_demo_action', {
+      action: action,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Listen for responses from plugin
+  socket.on('toolbar_demo_response', function(data) {
+    console.log('Toolbar Demo response:', data);
+  });
+
+  // Add click ripple effect
+  document.querySelectorAll('.toolbar-demo-container .btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const ripple = document.createElement('span');
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      ripple.classList.add('ripple');
+
+      this.appendChild(ripple);
+
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+
+})();
+</script>
+
+<style>
+/* Ripple effect */
+.btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0);
+  animation: ripple 0.6s ease-out;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+</style>
