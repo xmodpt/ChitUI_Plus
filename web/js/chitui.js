@@ -229,23 +229,33 @@ function handle_task_details(data) {
 }
 
 function handle_printer_files(data) {
+  console.log('=== handle_printer_files called ===');
+  console.log('Data received:', data);
+
   var id = data.Data.MainboardID
-  files = []
+  var files = []
   if (printers[id]['files'] !== undefined) {
     files = printers[id]['files']
   }
+
   $.each(data.Data.Data.FileList, function (i, f) {
     if (f.type === 0) {
       getPrinterFiles(id, f.name)
     } else {
       if (!files.includes(f.name)) {
         files.push(f.name)
+        console.log('Added file:', f.name);
       }
     }
   })
+
   printers[id]['files'] = files
+  console.log('Total files for printer ' + id + ':', files.length);
+  console.log('Files array:', files);
+
   createTable('Files', files)
   addFileOptions()
+  console.log('=== handle_printer_files complete ===');
 }
 
 function addPrinters(printers) {
@@ -314,8 +324,13 @@ function showPrinter(id) {
     createTable('Attributes', p.attributes)
   }
 
-  // Always request files from both locations if not already loaded
-  if (printers[id]['files'] == undefined || printers[id]['files'].length == 0) {
+  // Handle files - display if already loaded, otherwise request them
+  if (printers[id]['files'] !== undefined && printers[id]['files'].length > 0) {
+    console.log('Displaying existing files for printer:', id, '(', printers[id]['files'].length, 'files)');
+    createTable('Files', printers[id]['files'])
+    addFileOptions()
+  } else {
+    console.log('Requesting files for printer:', id);
     getPrinterFiles(id, '/local')
     getPrinterFiles(id, '/usb')
   }
@@ -1596,12 +1611,23 @@ let lastFileCount = 0;
 
 function syncTableToFileManager(sourceTbody) {
   const fileManagerBody = document.getElementById('fileManagerBody');
-  if (!fileManagerBody || !sourceTbody) return;
-  
+  if (!fileManagerBody) {
+    console.warn('fileManagerBody not found!');
+    return;
+  }
+  if (!sourceTbody) {
+    console.warn('sourceTbody not provided!');
+    return;
+  }
+
   const rows = sourceTbody.querySelectorAll('tr');
-  
-  if (rows.length === lastFileCount) return;
-  
+  console.log(`syncTableToFileManager: Found ${rows.length} rows in source table`);
+
+  if (rows.length === lastFileCount) {
+    console.log('File count unchanged, skipping sync');
+    return;
+  }
+
   lastFileCount = rows.length;
   console.log(`Syncing ${rows.length} files to File Manager`);
   
