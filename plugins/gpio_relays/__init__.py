@@ -222,17 +222,17 @@ class Plugin(ChitUIPlugin):
                                    static_folder=None)
 
         # Route: Get plugin UI
-        @self.blueprint.route('/plugin/gpio_relays/ui')
+        @self.blueprint.route('/ui')
         def get_ui():
             return render_template('gpio_relays.html', config=self.config)
 
         # Route: Get configuration
-        @self.blueprint.route('/plugin/gpio_relays/config')
+        @self.blueprint.route('/config')
         def get_config():
             return jsonify(self.config)
 
         # Route: Save configuration
-        @self.blueprint.route('/plugin/gpio_relays/config', methods=['POST'])
+        @self.blueprint.route('/config', methods=['POST'])
         def save_config_route():
             try:
                 new_config = request.json
@@ -256,7 +256,7 @@ class Plugin(ChitUIPlugin):
                 return jsonify({'success': False, 'error': str(e)}), 500
 
         # Route: Toggle relay
-        @self.blueprint.route('/plugin/gpio_relays/toggle/<relay_id>', methods=['POST'])
+        @self.blueprint.route('/toggle/<relay_id>', methods=['POST'])
         def toggle_relay(relay_id):
             if relay_id not in self.config:
                 return jsonify({'success': False, 'error': 'Invalid relay ID'}), 400
@@ -273,12 +273,12 @@ class Plugin(ChitUIPlugin):
             })
 
         # Route: Get relay states
-        @self.blueprint.route('/plugin/gpio_relays/states')
+        @self.blueprint.route('/states')
         def get_states():
             return jsonify(self.relay_states)
 
         # Route: Check setup status
-        @self.blueprint.route('/plugin/gpio_relays/setup/status')
+        @self.blueprint.route('/setup/status')
         def get_setup_status():
             return jsonify({
                 'setup_complete': self.setup_complete,
@@ -287,7 +287,7 @@ class Plugin(ChitUIPlugin):
             })
 
         # Route: Check dependency status
-        @self.blueprint.route('/plugin/gpio_relays/setup/check-dependencies')
+        @self.blueprint.route('/setup/check-dependencies')
         def check_dependencies():
             import subprocess
             try:
@@ -312,7 +312,7 @@ class Plugin(ChitUIPlugin):
                 })
 
         # Route: Install dependencies
-        @self.blueprint.route('/plugin/gpio_relays/setup/install-dependencies', methods=['POST'])
+        @self.blueprint.route('/setup/install-dependencies', methods=['POST'])
         def install_dependencies_route():
             import subprocess
             try:
@@ -348,7 +348,7 @@ class Plugin(ChitUIPlugin):
                 }), 500
 
         # Route: Complete setup wizard
-        @self.blueprint.route('/plugin/gpio_relays/setup/complete', methods=['POST'])
+        @self.blueprint.route('/setup/complete', methods=['POST'])
         def complete_setup():
             try:
                 self.setup_complete = True
