@@ -1,0 +1,439 @@
+<!-- GPIO Relay Control Plugin UI -->
+
+<div class="gpio-relay-toolbar d-flex gap-2 align-items-center">
+  <!-- Relay buttons will be generated dynamically -->
+  <div class="relay-buttons d-flex gap-1" id="relayButtons"></div>
+</div>
+
+<!-- Configuration Modal -->
+<div class="modal fade" id="gpioRelayConfigModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fa-solid fa-gear me-2"></i>GPIO Relay Configuration
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Tabs for each relay -->
+        <ul class="nav nav-tabs mb-3" id="relayConfigTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="relay1-tab" data-bs-toggle="tab" data-bs-target="#relay1-pane" type="button">
+              Relay 1
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="relay2-tab" data-bs-toggle="tab" data-bs-target="#relay2-pane" type="button">
+              Relay 2
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="relay3-tab" data-bs-toggle="tab" data-bs-target="#relay3-pane" type="button">
+              Relay 3
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="relay4-tab" data-bs-toggle="tab" data-bs-target="#relay4-pane" type="button">
+              Relay 4
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content" id="relayConfigTabContent">
+          <!-- Relay 1 -->
+          <div class="tab-pane fade show active" id="relay1-pane">
+            <div id="relay1-config"></div>
+          </div>
+          <!-- Relay 2 -->
+          <div class="tab-pane fade" id="relay2-pane">
+            <div id="relay2-config"></div>
+          </div>
+          <!-- Relay 3 -->
+          <div class="tab-pane fade" id="relay3-pane">
+            <div id="relay3-config"></div>
+          </div>
+          <!-- Relay 4 -->
+          <div class="tab-pane fade" id="relay4-pane">
+            <div id="relay4-config"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="gpioRelaySaveConfig()">
+          <i class="fa-solid fa-save me-2"></i>Save & Reload
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Relay button styling */
+.btn-relay {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+  font-size: 20px;
+}
+
+.btn-relay:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-relay.active {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border-color: #28a745;
+  color: white;
+}
+
+.btn-relay.inactive {
+  background: #e9ecef;
+  border-color: #dee2e6;
+  color: #6c757d;
+}
+
+/* Icon picker grid */
+.icon-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.icon-option {
+  aspect-ratio: 1;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: all 0.2s ease;
+  font-size: 24px;
+}
+
+.icon-option:hover {
+  border-color: #0d6efd;
+  background: #e7f1ff;
+  transform: scale(1.05);
+}
+
+.icon-option.selected {
+  border-color: #0d6efd;
+  background: #0d6efd;
+  color: white;
+}
+
+.icon-option small {
+  font-size: 10px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Preview */
+.icon-preview {
+  width: 80px;
+  height: 80px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin: 0 auto;
+}
+</style>
+
+<script>
+// Plugin configuration
+let relayConfig = {{ config | tojson }};
+
+// Icon options
+const iconOptions = [
+  // Power icons
+  { value: 'fa-solid fa-power-off', label: 'Power', category: 'power' },
+  { value: 'fa-solid fa-plug', label: 'Plug', category: 'power' },
+  { value: 'fa-solid fa-bolt', label: 'Bolt', category: 'power' },
+
+  // Light icons
+  { value: 'fa-solid fa-lightbulb', label: 'Light', category: 'light' },
+  { value: 'fa-solid fa-sun', label: 'Sun', category: 'light' },
+  { value: 'fa-solid fa-moon', label: 'Moon', category: 'light' },
+
+  // Heater icons
+  { value: 'fa-solid fa-fire', label: 'Heater', category: 'heater' },
+  { value: 'fa-solid fa-temperature-high', label: 'Temp High', category: 'heater' },
+
+  // Fan icons
+  { value: 'fa-solid fa-fan', label: 'Fan', category: 'fan' },
+  { value: 'fa-solid fa-wind', label: 'Wind', category: 'fan' },
+  { value: 'fa-solid fa-snowflake', label: 'Cool', category: 'fan' },
+
+  // Misc icons
+  { value: 'fa-solid fa-toggle-on', label: 'Toggle', category: 'misc' },
+  { value: 'fa-solid fa-circle-dot', label: 'Dot', category: 'misc' },
+  { value: 'fa-solid fa-gear', label: 'Gear', category: 'misc' },
+  { value: 'fa-solid fa-play', label: 'Play', category: 'misc' }
+];
+
+// Initialize plugin on load
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    loadRelayButtons();
+    injectConfigureButton();
+  }, 500);
+});
+
+// Inject Configure button into plugin manager
+function injectConfigureButton() {
+  const pluginManager = document.getElementById('pluginManagerList');
+  if (!pluginManager) return;
+
+  // Find this plugin's row in the manager
+  const observer = new MutationObserver((mutations) => {
+    const pluginCards = pluginManager.querySelectorAll('.card');
+    pluginCards.forEach(card => {
+      const title = card.querySelector('.card-title');
+      if (title && title.textContent.includes('GPIO Relay Control')) {
+        // Check if configure button already exists
+        if (!card.querySelector('.btn-configure-gpio')) {
+          const cardBody = card.querySelector('.card-body');
+          const configBtn = document.createElement('button');
+          configBtn.className = 'btn btn-sm btn-outline-primary mt-2 btn-configure-gpio';
+          configBtn.innerHTML = '<i class="fa-solid fa-gear me-1"></i>Configure';
+          configBtn.onclick = openGpioConfiguration;
+          cardBody.appendChild(configBtn);
+        }
+      }
+    });
+  });
+
+  observer.observe(pluginManager, { childList: true, subtree: true });
+
+  // Also check immediately
+  setTimeout(() => {
+    const pluginCards = pluginManager.querySelectorAll('.card');
+    pluginCards.forEach(card => {
+      const title = card.querySelector('.card-title');
+      if (title && title.textContent.includes('GPIO Relay Control')) {
+        if (!card.querySelector('.btn-configure-gpio')) {
+          const cardBody = card.querySelector('.card-body');
+          const configBtn = document.createElement('button');
+          configBtn.className = 'btn btn-sm btn-outline-primary mt-2 btn-configure-gpio';
+          configBtn.innerHTML = '<i class="fa-solid fa-gear me-1"></i>Configure';
+          configBtn.onclick = openGpioConfiguration;
+          cardBody.appendChild(configBtn);
+        }
+      }
+    });
+  }, 1000);
+}
+
+// Open configuration modal
+function openGpioConfiguration() {
+  // Load current configuration
+  fetch('/plugin/gpio_relays/config')
+    .then(response => response.json())
+    .then(config => {
+      relayConfig = config;
+      renderConfigForms();
+      const modal = new bootstrap.Modal(document.getElementById('gpioRelayConfigModal'));
+      modal.show();
+    })
+    .catch(error => console.error('Error loading relay config:', error));
+}
+
+// Render configuration forms for all relays
+function renderConfigForms() {
+  ['relay1', 'relay2', 'relay3', 'relay4'].forEach(relayId => {
+    const container = document.getElementById(`${relayId}-config`);
+    const relay = relayConfig[relayId];
+
+    container.innerHTML = `
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="${relayId}-enabled"
+                 ${relay.enabled ? 'checked' : ''} onchange="updateRelayField('${relayId}', 'enabled', this.checked)">
+          <label class="form-check-label" for="${relayId}-enabled">
+            <strong>Enable this relay</strong>
+          </label>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Relay Name</label>
+        <input type="text" class="form-control" id="${relayId}-name"
+               value="${relay.name}" maxlength="20"
+               onchange="updateRelayField('${relayId}', 'name', this.value)">
+        <small class="text-muted">Shown on hover (max 20 characters)</small>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">GPIO Pin (BCM)</label>
+        <select class="form-select" id="${relayId}-gpio"
+                onchange="updateRelayField('${relayId}', 'gpio_pin', parseInt(this.value))">
+          ${generateGpioPinOptions(relay.gpio_pin)}
+        </select>
+        <small class="text-muted">BCM pin numbering</small>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Working Mode</label>
+        <div class="btn-group w-100" role="group">
+          <input type="radio" class="btn-check" name="${relayId}-mode" id="${relayId}-mode-no"
+                 value="NO" ${relay.mode === 'NO' ? 'checked' : ''}
+                 onchange="updateRelayField('${relayId}', 'mode', 'NO')">
+          <label class="btn btn-outline-primary" for="${relayId}-mode-no">
+            NO (Normally Open)
+          </label>
+
+          <input type="radio" class="btn-check" name="${relayId}-mode" id="${relayId}-mode-nc"
+                 value="NC" ${relay.mode === 'NC' ? 'checked' : ''}
+                 onchange="updateRelayField('${relayId}', 'mode', 'NC')">
+          <label class="btn btn-outline-primary" for="${relayId}-mode-nc">
+            NC (Normally Closed)
+          </label>
+        </div>
+        <small class="text-muted">
+          NO: GPIO HIGH = ON, LOW = OFF | NC: GPIO LOW = ON, HIGH = OFF
+        </small>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Icon</label>
+        <div class="icon-preview mb-2" id="${relayId}-preview">
+          <i class="${relay.icon}"></i>
+        </div>
+        <div class="icon-picker" id="${relayId}-icons">
+          ${generateIconPicker(relayId, relay.icon)}
+        </div>
+      </div>
+    `;
+  });
+}
+
+// Generate GPIO pin options
+function generateGpioPinOptions(selectedPin) {
+  const commonPins = [2, 3, 4, 17, 27, 22, 10, 9, 11, 5, 6, 13, 19, 26, 14, 15, 18, 23, 24, 25, 8, 7, 12, 16, 20, 21];
+  let options = '';
+
+  for (let pin = 0; pin <= 27; pin++) {
+    const isCommon = commonPins.includes(pin);
+    const label = isCommon ? `GPIO ${pin}` : `GPIO ${pin} (less common)`;
+    options += `<option value="${pin}" ${pin === selectedPin ? 'selected' : ''}>${label}</option>`;
+  }
+
+  return options;
+}
+
+// Generate icon picker HTML
+function generateIconPicker(relayId, selectedIcon) {
+  return iconOptions.map(icon => `
+    <div class="icon-option ${icon.value === selectedIcon ? 'selected' : ''}"
+         onclick="selectIcon('${relayId}', '${icon.value}')">
+      <i class="${icon.value}"></i>
+      <small>${icon.label}</small>
+    </div>
+  `).join('');
+}
+
+// Select icon
+function selectIcon(relayId, iconValue) {
+  updateRelayField(relayId, 'icon', iconValue);
+
+  // Update UI
+  document.getElementById(`${relayId}-preview`).innerHTML = `<i class="${iconValue}"></i>`;
+
+  // Update picker selection
+  const picker = document.getElementById(`${relayId}-icons`);
+  picker.querySelectorAll('.icon-option').forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  picker.querySelector(`.icon-option[onclick*="${iconValue}"]`)?.classList.add('selected');
+}
+
+// Update relay field in config
+function updateRelayField(relayId, field, value) {
+  relayConfig[relayId][field] = value;
+}
+
+// Save configuration
+function gpioRelaySaveConfig() {
+  fetch('/plugin/gpio_relays/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(relayConfig)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Configuration saved! Page will reload to apply changes.');
+      location.reload();
+    } else {
+      alert('Error saving configuration: ' + (data.error || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error saving config:', error);
+    alert('Error saving configuration: ' + error.message);
+  });
+}
+
+// Load relay buttons in toolbar
+function loadRelayButtons() {
+  const container = document.getElementById('relayButtons');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  // Create buttons for enabled relays
+  Object.keys(relayConfig).forEach(relayId => {
+    const relay = relayConfig[relayId];
+    if (relay.enabled) {
+      const btn = document.createElement('button');
+      btn.id = `btn-${relayId}`;
+      btn.className = `btn btn-relay ${relay.state ? 'active' : 'inactive'}`;
+      btn.title = relay.name;
+      btn.innerHTML = `<i class="${relay.icon}"></i>`;
+      btn.onclick = () => toggleRelay(relayId);
+      container.appendChild(btn);
+    }
+  });
+}
+
+// Toggle relay state
+function toggleRelay(relayId) {
+  fetch(`/plugin/gpio_relays/toggle/${relayId}`, {
+    method: 'POST'
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      relayConfig[relayId].state = data.state;
+      const btn = document.getElementById(`btn-${relayId}`);
+      btn.className = `btn btn-relay ${data.state ? 'active' : 'inactive'}`;
+    } else {
+      alert('Error toggling relay: ' + (data.error || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error toggling relay:', error);
+    alert('Error toggling relay: ' + error.message);
+  });
+}
+</script>

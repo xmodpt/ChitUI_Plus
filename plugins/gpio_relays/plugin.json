@@ -1,0 +1,10 @@
+{
+  "name": "GPIO Relay Control",
+  "version": "1.0.0",
+  "description": "Control up to 4 GPIO relays with customizable icons and settings",
+  "author": "ChitUI",
+  "ui_type": "toolbar",
+  "dependencies": [
+    "RPi.GPIO"
+  ]
+}
