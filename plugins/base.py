@@ -53,6 +53,9 @@ class ChitUIPlugin(ABC):
         Returns:
             List of package names (e.g., ['requests>=2.0.0', 'numpy'])
         """
+        # Check manifest for dependencies first
+        if self.manifest and 'dependencies' in self.manifest:
+            return self.manifest['dependencies']
         return []
 
     def load_manifest(self):
@@ -71,9 +74,10 @@ class ChitUIPlugin(ABC):
         if deps:
             for dep in deps:
                 try:
+                    print(f"Installing dependency: {dep}")
                     subprocess.check_call(['pip', 'install', dep])
-                    return True
-                except subprocess.CalledProcessError:
+                except subprocess.CalledProcessError as e:
+                    print(f"Failed to install {dep}: {e}")
                     return False
         return True
 
