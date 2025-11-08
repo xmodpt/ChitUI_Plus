@@ -3,10 +3,13 @@ GPIO Relay Control Plugin for ChitUI
 Allows control of up to 4 GPIO relays with customizable settings
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+
 from plugins.base import ChitUIPlugin
 from flask import Blueprint, jsonify, request, render_template
 import json
-import os
 import threading
 
 # Try to import GPIO, but allow the plugin to work without it (for testing)
