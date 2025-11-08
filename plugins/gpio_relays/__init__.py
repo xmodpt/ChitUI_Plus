@@ -27,8 +27,10 @@ class Plugin(ChitUIPlugin):
     def __init__(self, plugin_dir):
         super().__init__(plugin_dir)
         self.config_file = os.path.expanduser('~/.chitui/gpio_relays_config.json')
+        self.setup_file = os.path.expanduser('~/.chitui/gpio_relays_setup.json')
         self.gpio_lock = threading.Lock()
         self.relay_states = {}
+        self.setup_complete = False
 
         # Default configuration for 4 relays
         self.config = {
@@ -66,14 +68,37 @@ class Plugin(ChitUIPlugin):
             }
         }
 
-        # Load saved configuration
+        # Load saved configuration and setup state
         self.load_config()
+        self.load_setup_state()
 
     def get_name(self):
         return "GPIO Relay Control"
 
     def get_version(self):
         return "1.0.0"
+
+    def load_setup_state(self):
+        """Load setup completion state"""
+        try:
+            if os.path.exists(self.setup_file):
+                with open(self.setup_file, 'r') as f:
+                    setup_data = json.load(f)
+                    self.setup_complete = setup_data.get('setup_complete', False)
+                print(f"GPIO Relays: Setup complete: {self.setup_complete}")
+        except Exception as e:
+            print(f"GPIO Relays: Error loading setup state: {e}")
+            self.setup_complete = False
+
+    def save_setup_state(self):
+        """Save setup completion state"""
+        try:
+            os.makedirs(os.path.dirname(self.setup_file), exist_ok=True)
+            with open(self.setup_file, 'w') as f:
+                json.dump({'setup_complete': self.setup_complete}, f, indent=2)
+            print(f"GPIO Relays: Saved setup state")
+        except Exception as e:
+            print(f"GPIO Relays: Error saving setup state: {e}")
 
     def load_config(self):
         """Load configuration from file"""
@@ -251,6 +276,93 @@ class Plugin(ChitUIPlugin):
         @self.blueprint.route('/plugin/gpio_relays/states')
         def get_states():
             return jsonify(self.relay_states)
+
+        # Route: Check setup status
+        @self.blueprint.route('/plugin/gpio_relays/setup/status')
+        def get_setup_status():
+            return jsonify({
+                'setup_complete': self.setup_complete,
+                'gpio_available': GPIO_AVAILABLE,
+                'dependencies_met': GPIO_AVAILABLE
+            })
+
+        # Route: Check dependency status
+        @self.blueprint.route('/plugin/gpio_relays/setup/check-dependencies')
+        def check_dependencies():
+            import subprocess
+            try:
+                # Try importing RPi.GPIO
+                import importlib
+                spec = importlib.util.find_spec("RPi.GPIO")
+                installed = spec is not None
+
+                return jsonify({
+                    'success': True,
+                    'rpi_gpio_installed': installed,
+                    'gpio_available': GPIO_AVAILABLE,
+                    'can_install': not installed  # Can install if not already installed
+                })
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': str(e),
+                    'rpi_gpio_installed': False,
+                    'gpio_available': False,
+                    'can_install': True
+                })
+
+        # Route: Install dependencies
+        @self.blueprint.route('/plugin/gpio_relays/setup/install-dependencies', methods=['POST'])
+        def install_dependencies_route():
+            import subprocess
+            try:
+                print("Installing RPi.GPIO...")
+                result = subprocess.run(
+                    ['pip', 'install', 'RPi.GPIO'],
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+
+                if result.returncode == 0:
+                    return jsonify({
+                        'success': True,
+                        'message': 'RPi.GPIO installed successfully',
+                        'output': result.stdout
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'message': 'Failed to install RPi.GPIO',
+                        'error': result.stderr
+                    }), 500
+            except subprocess.TimeoutExpired:
+                return jsonify({
+                    'success': False,
+                    'message': 'Installation timed out'
+                }), 500
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'message': str(e)
+                }), 500
+
+        # Route: Complete setup wizard
+        @self.blueprint.route('/plugin/gpio_relays/setup/complete', methods=['POST'])
+        def complete_setup():
+            try:
+                self.setup_complete = True
+                self.save_setup_state()
+
+                return jsonify({
+                    'success': True,
+                    'message': 'Setup completed successfully'
+                })
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'message': str(e)
+                }), 500
 
         # Register blueprint
         app.register_blueprint(self.blueprint)

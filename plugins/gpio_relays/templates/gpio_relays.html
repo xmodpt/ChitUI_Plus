@@ -70,6 +70,103 @@
   </div>
 </div>
 
+<!-- Setup Wizard Modal -->
+<div class="modal fade" id="gpioRelaySetupWizard" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="fa-solid fa-magic me-2"></i>GPIO Relay Setup Wizard
+        </h5>
+      </div>
+      <div class="modal-body">
+        <!-- Step 1: Welcome -->
+        <div id="wizard-step-1" class="wizard-step">
+          <h6 class="mb-3"><i class="fa-solid fa-hand-wave me-2"></i>Welcome to GPIO Relay Control</h6>
+          <p>This wizard will help you set up the GPIO Relay Control plugin.</p>
+          <div class="alert alert-info">
+            <i class="fa-solid fa-info-circle me-2"></i>
+            <strong>What this plugin does:</strong><br>
+            • Control up to 4 GPIO relays from Raspberry Pi<br>
+            • Customize icons, names, and settings for each relay<br>
+            • Toggle relays directly from the toolbar
+          </div>
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary" onclick="wizardNext(2)">
+              Next: Check Dependencies
+              <i class="fa-solid fa-arrow-right ms-2"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Dependency Check -->
+        <div id="wizard-step-2" class="wizard-step" style="display:none;">
+          <h6 class="mb-3"><i class="fa-solid fa-check-circle me-2"></i>Checking Dependencies</h6>
+          <p>Verifying required dependencies...</p>
+
+          <div class="card mb-3">
+            <div class="card-body">
+              <h6 class="card-title">
+                <i class="fa-solid fa-cube me-2"></i>RPi.GPIO Library
+              </h6>
+              <div id="dependency-status">
+                <div class="d-flex align-items-center">
+                  <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                  <span>Checking...</span>
+                </div>
+              </div>
+              <div id="dependency-actions" class="mt-3" style="display:none;">
+                <button class="btn btn-success" onclick="installDependencies()" id="btn-install-deps">
+                  <i class="fa-solid fa-download me-2"></i>Install RPi.GPIO
+                </button>
+              </div>
+              <div id="installation-progress" class="mt-3" style="display:none;">
+                <div class="progress">
+                  <div class="progress-bar progress-bar-striped progress-bar-animated"
+                       role="progressbar" style="width: 100%">Installing...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-secondary" onclick="wizardPrev(1)">
+              <i class="fa-solid fa-arrow-left me-2"></i>Back
+            </button>
+            <button class="btn btn-primary" onclick="wizardNext(3)" id="btn-next-step3" disabled>
+              Next: Complete Setup
+              <i class="fa-solid fa-arrow-right ms-2"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Complete -->
+        <div id="wizard-step-3" class="wizard-step" style="display:none;">
+          <h6 class="mb-3"><i class="fa-solid fa-check-circle me-2 text-success"></i>Setup Complete!</h6>
+          <div class="alert alert-success">
+            <i class="fa-solid fa-check-circle me-2"></i>
+            All dependencies are installed and the plugin is ready to use.
+          </div>
+          <p><strong>Next steps:</strong></p>
+          <ol>
+            <li>Go to Settings → Plugins</li>
+            <li>Click "Configure" on GPIO Relay Control</li>
+            <li>Enable and configure your relays</li>
+            <li>Wire your relay module to the GPIO pins</li>
+            <li>Start controlling relays from the toolbar!</li>
+          </ol>
+
+          <div class="d-grid gap-2 mt-4">
+            <button class="btn btn-success btn-lg" onclick="completeSetup()">
+              <i class="fa-solid fa-check me-2"></i>Finish Setup
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
 /* Relay button styling */
 .btn-relay {
@@ -196,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     loadRelayButtons();
     injectConfigureButton();
+    checkSetupStatus();
   }, 500);
 });
 
@@ -434,6 +532,163 @@ function toggleRelay(relayId) {
   .catch(error => {
     console.error('Error toggling relay:', error);
     alert('Error toggling relay: ' + error.message);
+  });
+}
+
+// Setup Wizard Functions
+function checkSetupStatus() {
+  fetch('/plugin/gpio_relays/setup/status')
+    .then(response => response.json())
+    .then(data => {
+      if (!data.setup_complete) {
+        // Show setup wizard
+        const modal = new bootstrap.Modal(document.getElementById('gpioRelaySetupWizard'));
+        modal.show();
+      }
+    })
+    .catch(error => console.error('Error checking setup status:', error));
+}
+
+let currentWizardStep = 1;
+
+function wizardNext(step) {
+  // Hide current step
+  document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'none';
+
+  // Show next step
+  currentWizardStep = step;
+  document.getElementById(`wizard-step-${step}`).style.display = 'block';
+
+  // If moving to step 2, check dependencies
+  if (step === 2) {
+    checkDependencies();
+  }
+}
+
+function wizardPrev(step) {
+  // Hide current step
+  document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'none';
+
+  // Show previous step
+  currentWizardStep = step;
+  document.getElementById(`wizard-step-${step}`).style.display = 'block';
+}
+
+function checkDependencies() {
+  fetch('/plugin/gpio_relays/setup/check-dependencies')
+    .then(response => response.json())
+    .then(data => {
+      const statusEl = document.getElementById('dependency-status');
+      const actionsEl = document.getElementById('dependency-actions');
+      const nextBtn = document.getElementById('btn-next-step3');
+
+      if (data.rpi_gpio_installed) {
+        // Dependency already installed
+        statusEl.innerHTML = `
+          <div class="alert alert-success">
+            <i class="fa-solid fa-check-circle me-2"></i>
+            RPi.GPIO is already installed and ready to use!
+          </div>
+        `;
+        actionsEl.style.display = 'none';
+        nextBtn.disabled = false;
+      } else {
+        // Dependency not installed
+        statusEl.innerHTML = `
+          <div class="alert alert-warning">
+            <i class="fa-solid fa-exclamation-triangle me-2"></i>
+            RPi.GPIO is not installed. Click below to install it.
+          </div>
+        `;
+        actionsEl.style.display = 'block';
+        nextBtn.disabled = true;
+      }
+    })
+    .catch(error => {
+      console.error('Error checking dependencies:', error);
+      document.getElementById('dependency-status').innerHTML = `
+        <div class="alert alert-danger">
+          <i class="fa-solid fa-times-circle me-2"></i>
+          Error checking dependencies: ${error.message}
+        </div>
+      `;
+    });
+}
+
+function installDependencies() {
+  const statusEl = document.getElementById('dependency-status');
+  const actionsEl = document.getElementById('dependency-actions');
+  const progressEl = document.getElementById('installation-progress');
+  const nextBtn = document.getElementById('btn-next-step3');
+
+  // Hide actions, show progress
+  actionsEl.style.display = 'none';
+  progressEl.style.display = 'block';
+
+  statusEl.innerHTML = `
+    <div class="alert alert-info">
+      <i class="fa-solid fa-spinner fa-spin me-2"></i>
+      Installing RPi.GPIO... This may take a minute.
+    </div>
+  `;
+
+  fetch('/plugin/gpio_relays/setup/install-dependencies', {
+    method: 'POST'
+  })
+  .then(response => response.json())
+  .then(data => {
+    progressEl.style.display = 'none';
+
+    if (data.success) {
+      statusEl.innerHTML = `
+        <div class="alert alert-success">
+          <i class="fa-solid fa-check-circle me-2"></i>
+          RPi.GPIO installed successfully!
+        </div>
+      `;
+      nextBtn.disabled = false;
+    } else {
+      statusEl.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="fa-solid fa-times-circle me-2"></i>
+          Installation failed: ${data.message || 'Unknown error'}
+        </div>
+      `;
+      actionsEl.style.display = 'block';
+    }
+  })
+  .catch(error => {
+    progressEl.style.display = 'none';
+    statusEl.innerHTML = `
+      <div class="alert alert-danger">
+        <i class="fa-solid fa-times-circle me-2"></i>
+        Installation error: ${error.message}
+      </div>
+    `;
+    actionsEl.style.display = 'block';
+  });
+}
+
+function completeSetup() {
+  fetch('/plugin/gpio_relays/setup/complete', {
+    method: 'POST'
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Close wizard
+      const modal = bootstrap.Modal.getInstance(document.getElementById('gpioRelaySetupWizard'));
+      modal.hide();
+
+      // Show success message
+      alert('Setup completed successfully! You can now configure your relays in Settings → Plugins.');
+    } else {
+      alert('Error completing setup: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error completing setup:', error);
+    alert('Error completing setup: ' + error.message);
   });
 }
 </script>
