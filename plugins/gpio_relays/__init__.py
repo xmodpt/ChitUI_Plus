@@ -364,9 +364,6 @@ class Plugin(ChitUIPlugin):
                     'message': str(e)
                 }), 500
 
-        # Register blueprint
-        app.register_blueprint(self.blueprint)
-
         # Initialize GPIO
         self.init_gpio()
 
