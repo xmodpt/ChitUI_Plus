@@ -261,3 +261,13 @@ class Plugin(ChitUIPlugin):
         """Called when plugin is disabled or app shuts down"""
         self.cleanup_gpio()
         print("GPIO Relay Control Plugin: Stopped")
+
+    def get_ui_integration(self):
+        """Return UI integration configuration"""
+        return {
+            'type': 'toolbar',
+            'location': 'main',
+            'icon': 'fa-solid fa-toggle-on',
+            'title': 'GPIO Relay Control',
+            'template': 'gpio_relays.html'
+        }
