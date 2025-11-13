@@ -1,0 +1,114 @@
+<!-- Plugin Template UI -->
+<div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="bi bi-puzzle"></i> Plugin Template
+    </h5>
+    <button class="btn btn-sm btn-outline-secondary" id="btnPluginAction">
+      <i class="bi bi-play"></i> Action
+    </button>
+  </div>
+  <div class="card-body">
+    <p class="text-muted">
+      This is a template for your plugin UI. Edit this file to customize.
+    </p>
+
+    <div class="mb-3">
+      <label for="pluginInput" class="form-label">Example Input</label>
+      <input type="text" class="form-control" id="pluginInput" placeholder="Enter something...">
+    </div>
+
+    <button class="btn btn-primary" id="btnSendData">
+      <i class="bi bi-send"></i> Send Data
+    </button>
+
+    <div id="pluginOutput" class="mt-3"></div>
+  </div>
+</div>
+
+<style>
+/* Plugin-specific styles */
+.plugin-template-card {
+  /* Your custom styles here */
+}
+</style>
+
+<script>
+(function() {
+  // Plugin JavaScript code
+
+  // Example: Button click handler
+  document.getElementById('btnPluginAction').addEventListener('click', function() {
+    console.log('Plugin action button clicked');
+
+    // Call plugin API endpoint
+    fetch('/plugin/plugin_template/example')
+      .then(response => response.json())
+      .then(data => {
+        console.log('Response from plugin:', data);
+        showOutput('Success: ' + JSON.stringify(data));
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showOutput('Error: ' + error);
+      });
+  });
+
+  // Example: Send data to plugin via SocketIO
+  document.getElementById('btnSendData').addEventListener('click', function() {
+    const input = document.getElementById('pluginInput').value;
+
+    if (!input) {
+      showOutput('Please enter some data');
+      return;
+    }
+
+    // Emit custom event to plugin
+    socket.emit('plugin_template_event', {
+      data: input,
+      timestamp: new Date().toISOString()
+    });
+
+    showOutput('Data sent: ' + input);
+  });
+
+  // Listen for responses from plugin
+  socket.on('plugin_template_response', function(response) {
+    console.log('Received response from plugin:', response);
+    showOutput('Plugin response: ' + JSON.stringify(response));
+  });
+
+  // Helper function to display output
+  function showOutput(message) {
+    const output = document.getElementById('pluginOutput');
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-info alert-dismissible fade show';
+    alert.innerHTML = `
+      ${escapeHtml(message)}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    output.innerHTML = '';
+    output.appendChild(alert);
+  }
+
+  // Escape HTML to prevent XSS
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Example: Listen for printer events
+  // Note: These events are emitted by the main app, not directly from plugins
+  socket.on('printer_status', function(data) {
+    console.log('Printer status update:', data);
+    // React to printer status changes
+  });
+
+  socket.on('printer_attributes', function(data) {
+    console.log('Printer attributes:', data);
+    // React to printer attribute changes
+  });
+
+})();
+</script>
