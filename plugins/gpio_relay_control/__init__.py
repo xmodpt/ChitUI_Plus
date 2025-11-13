@@ -15,8 +15,8 @@ class Plugin(ChitUIPlugin):
     """
     GPIO Relay Control Plugin
 
-    Controls 3 relays connected to Raspberry Pi GPIO pins.
-    Default GPIO pins: 17, 27, 22 (BCM numbering)
+    Controls up to 4 relays connected to Raspberry Pi GPIO pins.
+    Default GPIO pins: 17, 27, 22, 23 (BCM numbering)
     """
 
     def __init__(self, plugin_dir):
@@ -32,18 +32,27 @@ class Plugin(ChitUIPlugin):
             'relay1_pin': 17,
             'relay2_pin': 27,
             'relay3_pin': 22,
+            'relay4_pin': 23,
             'relay1_name': 'Relay 1',
             'relay2_name': 'Relay 2',
             'relay3_name': 'Relay 3',
+            'relay4_name': 'Relay 4',
             'relay1_type': 'NO',  # NO (Normally Open) or NC (Normally Closed)
             'relay2_type': 'NO',
             'relay3_type': 'NO',
+            'relay4_type': 'NO',
             'relay1_icon': 'fa-bolt',  # FontAwesome icon
             'relay2_icon': 'fa-power-off',
             'relay3_icon': 'fa-fan',
+            'relay4_icon': 'fa-lightbulb',
             'relay1_state': False,
             'relay2_state': False,
             'relay3_state': False,
+            'relay4_state': False,
+            'relay1_enabled': True,  # Enable/disable relay visibility
+            'relay2_enabled': True,
+            'relay3_enabled': True,
+            'relay4_enabled': True,
             'show_text': True  # Show text labels on buttons
         }
 
@@ -60,7 +69,7 @@ class Plugin(ChitUIPlugin):
         return "1.0.0"
 
     def get_description(self):
-        return "Control 3 GPIO relays from the toolbar"
+        return "Control up to 4 GPIO relays from the toolbar"
 
     def get_author(self):
         return "ChitUI Developer"
@@ -107,15 +116,11 @@ class Plugin(ChitUIPlugin):
             # Disable warnings
             GPIO.setwarnings(False)
 
-            # Setup relay pins as outputs
-            GPIO.setup(self.config['relay1_pin'], GPIO.OUT)
-            GPIO.setup(self.config['relay2_pin'], GPIO.OUT)
-            GPIO.setup(self.config['relay3_pin'], GPIO.OUT)
-
-            # Set initial states (accounting for NO/NC type)
-            GPIO.output(self.config['relay1_pin'], self.get_gpio_level(1, self.config['relay1_state']))
-            GPIO.output(self.config['relay2_pin'], self.get_gpio_level(2, self.config['relay2_state']))
-            GPIO.output(self.config['relay3_pin'], self.get_gpio_level(3, self.config['relay3_state']))
+            # Setup relay pins as outputs (only for enabled relays)
+            for i in range(1, 5):
+                if self.config.get(f'relay{i}_enabled', True):
+                    GPIO.setup(self.config[f'relay{i}_pin'], GPIO.OUT)
+                    GPIO.output(self.config[f'relay{i}_pin'], self.get_gpio_level(i, self.config[f'relay{i}_state']))
 
             print("GPIO relay pins initialized successfully")
         except Exception as e:
@@ -126,7 +131,7 @@ class Plugin(ChitUIPlugin):
         Get the correct GPIO level for a relay based on its type (NO/NC)
 
         Args:
-            relay_num: Relay number (1-3)
+            relay_num: Relay number (1-4)
             state: Desired state (True=ON, False=OFF)
 
         Returns:
@@ -191,17 +196,26 @@ class Plugin(ChitUIPlugin):
             'relay1': {
                 'name': self.config['relay1_name'],
                 'pin': self.config['relay1_pin'],
-                'state': self.config['relay1_state']
+                'state': self.config['relay1_state'],
+                'enabled': self.config.get('relay1_enabled', True)
             },
             'relay2': {
                 'name': self.config['relay2_name'],
                 'pin': self.config['relay2_pin'],
-                'state': self.config['relay2_state']
+                'state': self.config['relay2_state'],
+                'enabled': self.config.get('relay2_enabled', True)
             },
             'relay3': {
                 'name': self.config['relay3_name'],
                 'pin': self.config['relay3_pin'],
-                'state': self.config['relay3_state']
+                'state': self.config['relay3_state'],
+                'enabled': self.config.get('relay3_enabled', True)
+            },
+            'relay4': {
+                'name': self.config['relay4_name'],
+                'pin': self.config['relay4_pin'],
+                'state': self.config['relay4_state'],
+                'enabled': self.config.get('relay4_enabled', True)
             },
             'gpio_available': GPIO_AVAILABLE
         }
@@ -226,7 +240,7 @@ class Plugin(ChitUIPlugin):
         @blueprint.route('/relay/<int:relay_num>/toggle', methods=['POST'])
         def toggle_relay_route(relay_num):
             """Toggle a relay"""
-            if relay_num not in [1, 2, 3]:
+            if relay_num not in [1, 2, 3, 4]:
                 return jsonify({'error': 'Invalid relay number'}), 400
 
             success = self.toggle_relay(relay_num)
@@ -242,7 +256,7 @@ class Plugin(ChitUIPlugin):
         @blueprint.route('/relay/<int:relay_num>/set', methods=['POST'])
         def set_relay_route(relay_num):
             """Set relay state explicitly"""
-            if relay_num not in [1, 2, 3]:
+            if relay_num not in [1, 2, 3, 4]:
                 return jsonify({'error': 'Invalid relay number'}), 400
 
             data = request.get_json()
@@ -272,22 +286,28 @@ class Plugin(ChitUIPlugin):
             data = request.get_json()
 
             # Update relay names if provided
-            for i in [1, 2, 3]:
+            for i in [1, 2, 3, 4]:
                 name_key = f'relay{i}_name'
                 if name_key in data:
                     self.config[name_key] = data[name_key]
 
             # Update relay types (NO/NC) if provided
-            for i in [1, 2, 3]:
+            for i in [1, 2, 3, 4]:
                 type_key = f'relay{i}_type'
                 if type_key in data:
                     self.config[type_key] = data[type_key]
 
             # Update relay icons if provided
-            for i in [1, 2, 3]:
+            for i in [1, 2, 3, 4]:
                 icon_key = f'relay{i}_icon'
                 if icon_key in data:
                     self.config[icon_key] = data[icon_key]
+
+            # Update relay enabled state if provided
+            for i in [1, 2, 3, 4]:
+                enabled_key = f'relay{i}_enabled'
+                if enabled_key in data:
+                    self.config[enabled_key] = bool(data[enabled_key])
 
             # Update show_text if provided
             if 'show_text' in data:
@@ -295,7 +315,7 @@ class Plugin(ChitUIPlugin):
 
             # Update GPIO pins if provided
             pins_changed = False
-            for i in [1, 2, 3]:
+            for i in [1, 2, 3, 4]:
                 pin_key = f'relay{i}_pin'
                 if pin_key in data:
                     new_pin = int(data[pin_key])
@@ -306,10 +326,13 @@ class Plugin(ChitUIPlugin):
                         self.config[pin_key] = new_pin
                         pins_changed = True
 
-            # Check for duplicate pins
-            pins = [self.config['relay1_pin'], self.config['relay2_pin'], self.config['relay3_pin']]
-            if len(pins) != len(set(pins)):
-                return jsonify({'success': False, 'message': 'Each relay must use a different GPIO pin.'}), 400
+            # Check for duplicate pins (only among enabled relays)
+            enabled_pins = []
+            for i in [1, 2, 3, 4]:
+                if self.config.get(f'relay{i}_enabled', True):
+                    enabled_pins.append(self.config[f'relay{i}_pin'])
+            if len(enabled_pins) != len(set(enabled_pins)):
+                return jsonify({'success': False, 'message': 'Each enabled relay must use a different GPIO pin.'}), 400
 
             self.save_config()
 
@@ -345,7 +368,7 @@ class Plugin(ChitUIPlugin):
         def handle_toggle(data):
             """Handle relay toggle from client"""
             relay_num = data.get('relay')
-            if relay_num in [1, 2, 3]:
+            if relay_num in [1, 2, 3, 4]:
                 self.toggle_relay(relay_num)
                 socketio.emit('gpio_relay_state_changed', {
                     'relay': relay_num,
@@ -362,9 +385,9 @@ class Plugin(ChitUIPlugin):
         if GPIO_AVAILABLE:
             try:
                 # Turn off all relays
-                self.set_relay_state(1, False)
-                self.set_relay_state(2, False)
-                self.set_relay_state(3, False)
+                for i in range(1, 5):
+                    if self.config.get(f'relay{i}_enabled', True):
+                        self.set_relay_state(i, False)
 
                 # Cleanup GPIO
                 GPIO.cleanup()

@@ -3,17 +3,21 @@
 
 <!-- GPIO Relay Control Buttons -->
 <div class="d-flex gap-2" id="gpio-relay-buttons">
-    <button type="button" class="btn btn-sm gpio-relay-btn relay-off" id="relay1-btn" data-relay="1" title="Relay 1">
+    <button type="button" class="btn btn-sm gpio-relay-btn relay-off" id="relay1-btn" data-relay="1" title="Relay 1" style="display: none;">
         <i class="fa-solid fa-bolt"></i>
         <span class="relay-text ms-1">R1</span>
     </button>
-    <button type="button" class="btn btn-sm gpio-relay-btn relay-off" id="relay2-btn" data-relay="2" title="Relay 2">
+    <button type="button" class="btn btn-sm gpio-relay-btn relay-off" id="relay2-btn" data-relay="2" title="Relay 2" style="display: none;">
         <i class="fa-solid fa-power-off"></i>
         <span class="relay-text ms-1">R2</span>
     </button>
-    <button type="button" class="btn btn-sm gpio-relay-btn relay-off" id="relay3-btn" data-relay="3" title="Relay 3">
+    <button type="button" class="btn btn-sm gpio-relay-btn relay-off" id="relay3-btn" data-relay="3" title="Relay 3" style="display: none;">
         <i class="fa-solid fa-fan"></i>
         <span class="relay-text ms-1">R3</span>
+    </button>
+    <button type="button" class="btn btn-sm gpio-relay-btn relay-off" id="relay4-btn" data-relay="4" title="Relay 4" style="display: none;">
+        <i class="fa-solid fa-lightbulb"></i>
+        <span class="relay-text ms-1">R4</span>
     </button>
 </div>
 
@@ -21,7 +25,8 @@
 /* Active relay state - orange */
 #relay1-btn.relay-on,
 #relay2-btn.relay-on,
-#relay3-btn.relay-on {
+#relay3-btn.relay-on,
+#relay4-btn.relay-on {
     background-color: #ff8c00 !important;
     border-color: #ff8c00 !important;
     color: white !important;
@@ -30,7 +35,8 @@
 /* Inactive relay state - gray */
 #relay1-btn.relay-off,
 #relay2-btn.relay-off,
-#relay3-btn.relay-off {
+#relay3-btn.relay-off,
+#relay4-btn.relay-off {
     background-color: #6c757d !important;
     border-color: #6c757d !important;
     color: white !important;
@@ -60,9 +66,10 @@
 
     // Plugin state
     const relayConfig = {
-        relay1: { name: 'Relay 1', icon: 'fa-bolt', type: 'NO', state: false },
-        relay2: { name: 'Relay 2', icon: 'fa-power-off', type: 'NO', state: false },
-        relay3: { name: 'Relay 3', icon: 'fa-fan', type: 'NO', state: false },
+        relay1: { name: 'Relay 1', icon: 'fa-bolt', type: 'NO', state: false, enabled: true },
+        relay2: { name: 'Relay 2', icon: 'fa-power-off', type: 'NO', state: false, enabled: true },
+        relay3: { name: 'Relay 3', icon: 'fa-fan', type: 'NO', state: false, enabled: true },
+        relay4: { name: 'Relay 4', icon: 'fa-lightbulb', type: 'NO', state: false, enabled: true },
         show_text: true
     };
 
@@ -77,7 +84,7 @@
         console.log('[GPIO Relay] Initializing GPIO Relay Control plugin');
 
         // Setup button click handlers
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             const btn = document.getElementById(`relay${i}-btn`);
             if (btn) {
                 console.log(`[GPIO Relay] Found button relay${i}-btn, adding click handler`);
@@ -138,10 +145,11 @@
 
     function loadConfiguration(config) {
         // Update relay configurations
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             relayConfig[`relay${i}`].name = config[`relay${i}_name`] || `Relay ${i}`;
             relayConfig[`relay${i}`].icon = config[`relay${i}_icon`] || 'fa-bolt';
             relayConfig[`relay${i}`].type = config[`relay${i}_type`] || 'NO';
+            relayConfig[`relay${i}`].enabled = config[`relay${i}_enabled`] !== false;
         }
         relayConfig.show_text = config.show_text !== false;
 
@@ -150,11 +158,18 @@
     }
 
     function updateButtonAppearance() {
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             const btn = document.getElementById(`relay${i}-btn`);
             if (!btn) continue;
 
             const config = relayConfig[`relay${i}`];
+
+            // Show/hide button based on enabled state
+            if (config.enabled) {
+                btn.style.display = '';
+            } else {
+                btn.style.display = 'none';
+            }
 
             // Update icon
             const icon = btn.querySelector('i');
@@ -239,12 +254,18 @@
     }
 
     function updateAllRelayButtons(data) {
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= 4; i++) {
             const relayData = data[`relay${i}`];
             if (relayData) {
                 updateRelayButton(i, relayData.state);
+                // Update enabled state
+                if (relayConfig[`relay${i}`]) {
+                    relayConfig[`relay${i}`].enabled = relayData.enabled !== false;
+                }
             }
         }
+        // Update button visibility based on enabled state
+        updateButtonAppearance();
     }
 
     console.log('GPIO Relay Control plugin loaded');
