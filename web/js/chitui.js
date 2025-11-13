@@ -80,6 +80,16 @@ socket.on("printer_attributes", (data) => {
   handle_printer_attributes(data)
 });
 
+socket.on("printer_online", (data) => {
+  console.log("Printer online:", data.name);
+  setPrinterOnlineStatus(data.MainboardID, true);
+});
+
+socket.on("printer_offline", (data) => {
+  console.log("Printer offline:", data.name);
+  setPrinterOnlineStatus(data.MainboardID, false);
+});
+
 function handle_printer_status(data) {
   if (!printers[data.MainboardID].hasOwnProperty('status')) {
     printers[data.MainboardID]['status'] = {}
@@ -276,6 +286,14 @@ function addPrinters(printers) {
       // Hide the image if it fails to load
       $(this).hide()
     })
+
+    // Set initial connection status based on printer.connected field
+    if (printer.connected === false) {
+      item.find('.printerStatusBadge').removeClass('status-online').addClass('status-offline')
+      item.find('.printerStatus').removeClass('text-success').addClass('text-danger')
+      item.find('.printerStatus').text('Offline')
+      item.find('.printerInfo small').text('Disconnected')
+    }
 
     item.on('click', function () {
       showPrinter($(this).data('printer-id'))
@@ -656,6 +674,34 @@ function updatePrinterStatusIcon(id, style, spinner) {
     return (css.match(/\btext-\S+/g) || []).join(' ');
   }).addClass("text-" + style);
   status.find('i').removeClass().addClass('bi-circle-fill')
+}
+
+function setPrinterOnlineStatus(id, isOnline) {
+  var printerCard = $('#printer_' + id);
+  var statusBadge = printerCard.find('.printerStatusBadge');
+  var statusText = printerCard.find('.printerStatus');
+  var statusIcon = statusBadge.find('i');
+  var info = printerCard.find('.printerInfo');
+
+  // Hide spinner
+  printerCard.find('.printerSpinner').addClass('visually-hidden');
+  statusText.removeClass('visually-hidden');
+
+  if (isOnline) {
+    // Set to online/idle state
+    statusBadge.removeClass('status-offline').addClass('status-online');
+    statusText.removeClass('text-danger').addClass('text-success');
+    statusIcon.removeClass().addClass('bi-circle-fill');
+    statusText.text('Online');
+    info.text('Idle');
+  } else {
+    // Set to offline state
+    statusBadge.removeClass('status-online').addClass('status-offline');
+    statusText.removeClass('text-success').addClass('text-danger');
+    statusIcon.removeClass().addClass('bi-circle-fill');
+    statusText.text('Offline');
+    info.text('Disconnected');
+  }
 }
 
 function setServerStatus(online) {
