@@ -23,6 +23,15 @@ class Plugin(ChitUIPlugin):
         self.max_log_size = 1000
         self.socketio = None
 
+        # Message filtering - only show these types
+        self.filter_enabled = True
+        self.allowed_message_types = {
+            'system_command',  # System commands (M codes, system G-codes)
+            'print_command',   # Print-related commands
+            'print_status',    # Print status updates
+            'system_error'     # System errors
+        }
+
     def get_name(self):
         return "Terminal"
 
@@ -59,6 +68,22 @@ class Plugin(ChitUIPlugin):
             self.message_log = []
             return jsonify({'ok': True})
 
+        @self.blueprint.route('/filter', methods=['GET'])
+        def get_filter_settings():
+            """Get current filter settings"""
+            return jsonify({
+                'enabled': self.filter_enabled,
+                'allowed_types': list(self.allowed_message_types)
+            })
+
+        @self.blueprint.route('/filter', methods=['POST'])
+        def update_filter_settings():
+            """Update filter settings"""
+            data = request.get_json()
+            if 'enabled' in data:
+                self.filter_enabled = bool(data['enabled'])
+            return jsonify({'ok': True, 'enabled': self.filter_enabled})
+
     def register_socket_handlers(self, socketio):
         """Register SocketIO handlers"""
 
@@ -92,9 +117,56 @@ class Plugin(ChitUIPlugin):
             else:
                 msg_str = str(message)
 
+            # Apply filtering if enabled
+            if self.filter_enabled:
+                message_type = self.categorize_message(msg_str)
+                if message_type not in self.allowed_message_types:
+                    return  # Skip this message
+
             self.log_message(printer_id, 'RECV', msg_str)
         except Exception as e:
             print(f"Error logging message: {e}")
+
+    def categorize_message(self, message):
+        """Categorize message type for filtering"""
+        msg_lower = message.lower()
+
+        # System errors
+        if any(err in msg_lower for err in ['error', 'err:', 'fail', 'warning', 'warn:', 'exception', 'fault']):
+            return 'system_error'
+
+        # System commands (M codes and system G-codes)
+        if any(cmd in msg_lower for cmd in ['m110', 'm111', 'm112', 'm115', 'm117', 'm118', 'm119',
+                                              'm120', 'm121', 'm122', 'm123', 'm124', 'm125',
+                                              'm503', 'm504', 'm505', 'm997', 'm999']):
+            return 'system_command'
+
+        # Print status (temperature, position, status reports)
+        if any(status in msg_lower for status in ['t:', 'b:', 'ok t:', 'x:', 'y:', 'z:', 'e:',
+                                                    'count ', 'printing', 'progress', 'percent',
+                                                    'layer', 'position', 'busy:', 'ok b:']):
+            return 'print_status'
+
+        # Print commands (temperature control, movement, print-related)
+        if any(cmd in msg_lower for cmd in ['m104', 'm105', 'm106', 'm107', 'm108', 'm109',
+                                              'm140', 'm141', 'm190', 'm191',
+                                              'g28', 'g29', 'g90', 'g91', 'g92',
+                                              'm0', 'm1', 'm17', 'm18', 'm20', 'm21', 'm22',
+                                              'm23', 'm24', 'm25', 'm26', 'm27', 'm28', 'm29',
+                                              'm30', 'm31', 'm32', 'm33']):
+            return 'print_command'
+
+        # If starts with G or M followed by number, likely a command
+        import re
+        if re.match(r'^[gm]\d+', msg_lower.strip()):
+            # Check if it's movement (G0, G1) or print-related
+            if re.match(r'^g[01]\s', msg_lower.strip()):
+                return 'print_command'
+            # Other G/M codes as system commands
+            return 'system_command'
+
+        # Default: don't show
+        return 'other'
 
     def log_message(self, printer_id, direction, message):
         """Add a message to the log"""
