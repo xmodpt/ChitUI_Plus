@@ -84,9 +84,6 @@ class Plugin(ChitUIPlugin):
                 self.filter_enabled = bool(data['enabled'])
             return jsonify({'ok': True, 'enabled': self.filter_enabled})
 
-        # Register blueprint
-        app.register_blueprint(self.blueprint, url_prefix='/plugin/terminal')
-
     def register_socket_handlers(self, socketio):
         """Register SocketIO handlers"""
 
