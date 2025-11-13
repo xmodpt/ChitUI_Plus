@@ -1,15 +1,17 @@
 # GPIO Relay Control Plugin
 
-Control 3 GPIO relays from the ChitUI toolbar with real-time status updates.
+Control up to 4 GPIO relays from the ChitUI toolbar with real-time status updates and enable/disable controls.
 
 ## Features
 
-- **3 Independent Relay Controls** - Control 3 separate GPIO relays
+- **4 Independent Relay Controls** - Control up to 4 separate GPIO relays
+- **Enable/Disable Relays** - Show only the relays you need in the toolbar
 - **Toolbar Integration** - Buttons positioned on the far right of the toolbar
 - **Real-time Updates** - Socket.IO integration for instant state synchronization
-- **Custom Names** - Rename each relay for easier identification
-- **Visual Feedback** - LED-like indicators show relay state (ON/OFF)
-- **Settings Modal** - Configure relay names and view GPIO pin assignments
+- **Custom Names & Icons** - Rename each relay and choose custom FontAwesome icons
+- **NO/NC Relay Support** - Configure for Normally Open or Normally Closed relays
+- **Visual Feedback** - Orange/gray indicators show relay state (ON/OFF)
+- **Settings Panel** - Configure relay names, pins, types, icons, and enable state
 - **Persistent State** - Relay states are saved and restored on reboot
 - **Simulation Mode** - Works without GPIO hardware for testing
 
@@ -17,9 +19,10 @@ Control 3 GPIO relays from the ChitUI toolbar with real-time status updates.
 
 ### Default GPIO Pin Assignment (BCM Numbering)
 
-- **Relay 1**: GPIO 17
-- **Relay 2**: GPIO 27
-- **Relay 3**: GPIO 22
+- **Relay 1**: GPIO 17 (⚡ Lightning Bolt icon)
+- **Relay 2**: GPIO 27 (🔌 Power icon)
+- **Relay 3**: GPIO 22 (🌀 Fan icon)
+- **Relay 4**: GPIO 23 (💡 Light Bulb icon)
 
 ### Wiring
 
@@ -31,12 +34,15 @@ Raspberry Pi GPIO    →    Relay Module
 GPIO 17 (Pin 11)     →    Relay 1 IN
 GPIO 27 (Pin 13)     →    Relay 2 IN
 GPIO 22 (Pin 15)     →    Relay 3 IN
+GPIO 23 (Pin 16)     →    Relay 4 IN
 GND     (Pin 6)      →    GND
 5V      (Pin 2)      →    VCC (if relay needs 5V)
 ```
 
 **Important Notes:**
-- Most relay modules are **active LOW** - they turn ON when GPIO is LOW
+- Configure relay type (NO/NC) in settings based on your relay module
+- **Normally Open (NO)**: Relay activates when GPIO is HIGH
+- **Normally Closed (NC)**: Relay activates when GPIO is LOW
 - Use appropriate power supply for your relay modules
 - Consider using optocouplers for electrical isolation
 - Check your relay module's voltage requirements (3.3V or 5V)
@@ -64,18 +70,25 @@ pip install RPi.GPIO
 
 ### Control Relays
 
-1. **Toggle Relay**: Click any relay button (R1, R2, R3) to toggle its state
+1. **Toggle Relay**: Click any relay button (R1, R2, R3, R4) to toggle its state
 2. **Visual Feedback**:
    - **Gray button** = Relay OFF
-   - **Green pulsing button** = Relay ON
-3. **Settings**: Click the gear icon to open settings
+   - **Orange button** = Relay ON
+3. **Settings**: Click the settings icon to open configuration panel
 
-### Configure Relay Names
+### Configure Relays
 
-1. Click the **gear icon** in the relay toolbar
-2. Enter custom names for each relay (e.g., "Lights", "Fan", "Heater")
-3. Click "Save"
-4. Hover over relay buttons to see the custom names
+1. Open **Settings** from the main ChitUI interface
+2. Navigate to **Plugins** section
+3. Find **GPIO Relay Control** settings
+4. For each relay, you can configure:
+   - **Enable/Disable**: Toggle to show/hide relay in toolbar
+   - **Name**: Custom name (e.g., "Lights", "Fan", "Heater")
+   - **Type**: NO (Normally Open) or NC (Normally Closed)
+   - **Icon**: Choose from 6 FontAwesome icons
+   - **GPIO Pin**: Change pin assignment (requires restart)
+5. Click "Save Changes"
+6. Only enabled relays will appear in the toolbar
 
 ## API Endpoints
 
@@ -92,17 +105,26 @@ Response:
   "relay1": {
     "name": "Relay 1",
     "pin": 17,
-    "state": false
+    "state": false,
+    "enabled": true
   },
   "relay2": {
     "name": "Relay 2",
     "pin": 27,
-    "state": false
+    "state": false,
+    "enabled": true
   },
   "relay3": {
     "name": "Relay 3",
     "pin": 22,
-    "state": false
+    "state": false,
+    "enabled": true
+  },
+  "relay4": {
+    "name": "Relay 4",
+    "pin": 23,
+    "state": false,
+    "enabled": true
   },
   "gpio_available": true
 }
@@ -113,9 +135,11 @@ Response:
 POST /plugin/gpio_relay_control/relay/<relay_num>/toggle
 ```
 
+Where `<relay_num>` is 1, 2, 3, or 4.
+
 Example:
 ```bash
-curl -X POST http://localhost:5000/plugin/gpio_relay_control/relay/1/toggle
+curl -X POST http://localhost:8080/plugin/gpio_relay_control/relay/1/toggle
 ```
 
 ### Set Relay State Explicitly
@@ -139,11 +163,21 @@ POST /plugin/gpio_relay_control/config
 Content-Type: application/json
 
 {
-  "relay1_name": "My Custom Name",
-  "relay2_name": "Another Name",
-  "relay3_name": "Third Name"
+  "relay1_name": "Lights",
+  "relay1_enabled": true,
+  "relay1_type": "NO",
+  "relay1_icon": "fa-lightbulb",
+  "relay1_pin": 17,
+  "relay2_name": "Fan",
+  "relay2_enabled": true,
+  "relay2_type": "NO",
+  "relay2_icon": "fa-fan",
+  "relay2_pin": 27,
+  "show_text": true
 }
 ```
+
+**Note**: Changing GPIO pins requires restarting ChitUI.
 
 ## Socket.IO Events
 
@@ -152,7 +186,7 @@ Content-Type: application/json
 **Toggle Relay:**
 ```javascript
 socket.emit('gpio_relay_toggle', {
-  relay: 1  // Relay number (1, 2, or 3)
+  relay: 1  // Relay number (1, 2, 3, or 4)
 });
 ```
 
@@ -191,9 +225,13 @@ socket.on('gpio_relay_config_updated', function(config) {
 Location: `~/.chitui/gpio_relay_config.json`
 
 Contains:
-- GPIO pin assignments
-- Relay names
-- Last known relay states
+- GPIO pin assignments (relay1_pin through relay4_pin)
+- Relay names (relay1_name through relay4_name)
+- Relay types (relay1_type through relay4_type: NO or NC)
+- Relay icons (relay1_icon through relay4_icon)
+- Enable states (relay1_enabled through relay4_enabled)
+- Last known relay states (relay1_state through relay4_state)
+- Display settings (show_text)
 
 ### Plugin Settings
 Location: `~/.chitui/plugin_settings.json`
@@ -274,24 +312,37 @@ sudo usermod -a -G gpio $USER
 
 ### Change GPIO Pins
 
-Edit the configuration in `~/.chitui/gpio_relay_config.json`:
+Edit the configuration in `~/.chitui/gpio_relay_config.json` or use the settings panel:
 
 ```json
 {
   "relay1_pin": 17,
   "relay2_pin": 27,
-  "relay3_pin": 22
+  "relay3_pin": 22,
+  "relay4_pin": 23
 }
 ```
 
 **Note:** Restart ChitUI after changing GPIO pins.
 
-### Add More Relays
+### Disable Unused Relays
 
-To add more than 3 relays, you'll need to modify:
-1. `__init__.py` - Add relay4, relay5, etc.
-2. `gpio_relay_control.html` - Add more buttons
-3. `relay-control.js` - Add handlers for new relays
+If you're only using 2 or 3 relays, you can disable the unused ones:
+
+1. Open Settings → Plugins → GPIO Relay Control
+2. Toggle off the "Enabled" switch for unused relays
+3. Click "Save Changes"
+4. Only enabled relays will appear in the toolbar
+
+### Available Icons
+
+Choose from these FontAwesome icons:
+- ⚡ `fa-bolt` - Lightning Bolt
+- 🔌 `fa-power-off` - Power
+- 🌀 `fa-fan` - Fan
+- 💧 `fa-droplet` - Water Drop
+- 💡 `fa-lightbulb` - Light Bulb
+- 🔥 `fa-fire` - Heater
 
 ## License
 
@@ -302,6 +353,14 @@ This plugin is part of the ChitUI project.
 For issues and questions, please refer to the main ChitUI documentation or create an issue in the project repository.
 
 ## Version History
+
+### v1.1.0 (Current)
+- 4 relay support (added 4th relay)
+- Enable/disable controls for each relay
+- NO/NC relay type configuration
+- Custom icon selection (6 FontAwesome icons)
+- Improved settings panel
+- Smart pin validation (only checks enabled relays)
 
 ### v1.0.0
 - Initial release

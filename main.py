@@ -1484,7 +1484,12 @@ if __name__ == "__main__":
     main()
 
     logger.info("=" * 60)
-    logger.info("ChitUI Starting")
+    logger.info("ChitUI Plus Starting")
+    logger.info("=" * 60)
+    logger.info("Credits:")
+    logger.info("  Based on PoC by Jan Grewe")
+    logger.info("  GitHub: https://github.com/jangrewe/ChitUI")
+    logger.info("  Instagram: https://www.instagram.com/jangrewe/?hl=en")
     logger.info("=" * 60)
     logger.info(f"Python Environment:")
     logger.info(f"  → Python executable: {sys.executable}")

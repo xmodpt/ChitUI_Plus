@@ -1,7 +1,15 @@
-# ChitUI v4
- 
+# ChitUI Plus
 
-A modern web-based control interface for **Elegoo** resin 3D printers, designed to run on Raspberry Pi with advanced USB gadget support for seamless file management.
+A modern web-based control interface for **Elegoo** resin 3D printers, designed to run on Raspberry Pi with advanced USB gadget support for seamless file management and extensible plugin system.
+
+## 🙏 Credits
+
+This application is based on a **Proof of Concept (PoC)** done by **Jan Grewe**.
+
+- **GitHub**: [https://github.com/jangrewe/ChitUI](https://github.com/jangrewe/ChitUI)
+- **Instagram**: [https://www.instagram.com/jangrewe/?hl=en](https://www.instagram.com/jangrewe/?hl=en)
+
+Thank you Jan for the foundation that made ChitUI Plus possible!
 
 
 ![Python](https://img.shields.io/badge/python-3.7+-blue.svg)
@@ -40,6 +48,18 @@ A modern web-based control interface for **Elegoo** resin 3D printers, designed 
 - Start/stop camera controls
 - Compatible with Elegoo printer built-in cameras
 
+
+### 🔌 Plugin System
+
+- **Extensible architecture** - Add custom functionality via plugins
+- **GPIO Relay Control** - Control up to 4 GPIO relays with enable/disable
+- **Terminal Plugin** - Monitor printer communication with smart filtering
+  - System commands (M-codes, G-codes)
+  - Print commands and status
+  - System errors and warnings
+  - Filter toggle for reduced noise
+- **Plugin manager** - Enable/disable plugins from UI
+- **Custom plugin development** - Easy-to-use plugin API
 
 ### ⚙️ Advanced Features
 
@@ -377,13 +397,15 @@ The web interface will be available at:
 
 ## 📚 Documentation
 
- 
-
 - **[UPLOAD_FIXES.md](UPLOAD_FIXES.md)** - Thread safety and error handling details
-
 - **[USB_GADGET_FIXES.md](USB_GADGET_FIXES.md)** - Complete USB gadget auto-refresh documentation
-
+- **[PLUGIN_DEVELOPMENT.md](PLUGIN_DEVELOPMENT.md)** - Guide for creating custom plugins
 - **[check_usb_gadget.sh](check_usb_gadget.sh)** - Diagnostic script with troubleshooting guide
+
+### Plugin Documentation
+
+- **[GPIO Relay Control](plugins/gpio_relay_control/README.md)** - Control up to 4 GPIO relays
+- **[Plugin Template](plugins/plugin_template/README.md)** - Template for creating new plugins
 
  
 
@@ -397,9 +419,20 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ## 📝 Changelog
 
- 
+### v4.0+ (ChitUI Plus - Latest)
 
-### v4.0 (Latest)
+- 🔌 **Plugin System** - Extensible architecture for custom functionality
+- ⚡ **GPIO Relay Control** - Control up to 4 GPIO relays with enable/disable
+- 📟 **Terminal Plugin** - Smart message filtering for printer communication
+- ✨ Added automatic USB gadget refresh (no more manual unplugging!)
+- ✨ Intelligent file detection with retry logic
+- 🔒 Thread-safe upload system
+- 🐛 Fixed concurrent upload race conditions
+- 📊 Enhanced error handling and user feedback
+- 🔧 Added diagnostic tools for USB gadget troubleshooting
+- 📚 Comprehensive documentation
+
+### v4.0 (Original)
 
 - ✨ Added automatic USB gadget refresh (no more manual unplugging!)
 
@@ -429,14 +462,10 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ## 🙏 Acknowledgments
 
- 
-
+- **Jan Grewe** - For the original ChitUI Proof of Concept
 - **Elegoo** - For creating excellent resin printers with network APIs
-
 - **Flask & Flask-SocketIO** - For the web framework
-
 - **Bootstrap** - For the UI framework
-
 - **Raspberry Pi Foundation** - For the amazing single-board computers
 
  
