@@ -1386,12 +1386,12 @@ def connect_printers(printers_to_connect):
         logger.info("Connecting to: {n}".format(n=printer['name']))
         websocket.setdefaulttimeout(1)
         ws = websocket.WebSocketApp(url,on_message=ws_msg_handler,
-                                    on_open=lambda _: ws_connected_handler(
-                                        printer['name']),
-                                    on_close=lambda _, s, m: logger.info(
-                                        "Connection to '{n}' closed: {m} ({s})".format(n=printer['name'], m=m, s=s)),
-                                    on_error=lambda _, e: logger.info(
-                                        "Connection to '{n}' error: {e}".format(n=printer['name'], e=e))
+                                    on_open=lambda _, printer_id=id: ws_connected_handler(
+                                        printer_id),
+                                    on_close=lambda _, s, m, printer_id=id: ws_closed_handler(
+                                        printer_id, s, m),
+                                    on_error=lambda _, e, printer_id=id: ws_error_handler(
+                                        printer_id, e)
                                     )
         websockets[id] = ws
         Thread(target=lambda: ws.run_forever(reconnect=1), daemon=True).start()
@@ -1399,9 +1399,28 @@ def connect_printers(printers_to_connect):
     return True
 
 
-def ws_connected_handler(name):
-    logger.info("Connected to: {n}".format(n=name))
-    socketio.emit('printers', printers)
+def ws_connected_handler(printer_id):
+    if printer_id in printers:
+        logger.info("Connected to: {n}".format(n=printers[printer_id]['name']))
+        # Emit online status to frontend
+        socketio.emit('printer_online', {'MainboardID': printer_id, 'name': printers[printer_id]['name']})
+        socketio.emit('printers', printers)
+
+
+def ws_closed_handler(printer_id, status_code, message):
+    if printer_id in printers:
+        logger.info("Connection to '{n}' closed: {m} ({s})".format(
+            n=printers[printer_id]['name'], m=message, s=status_code))
+        # Emit offline status to frontend
+        socketio.emit('printer_offline', {'MainboardID': printer_id, 'name': printers[printer_id]['name']})
+
+
+def ws_error_handler(printer_id, error):
+    if printer_id in printers:
+        logger.info("Connection to '{n}' error: {e}".format(
+            n=printers[printer_id]['name'], e=error))
+        # Emit offline status to frontend on error
+        socketio.emit('printer_offline', {'MainboardID': printer_id, 'name': printers[printer_id]['name']})
 
 
 def ws_msg_handler(ws, msg):
