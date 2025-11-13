@@ -118,65 +118,120 @@ function handle_printer_attributes(data) {
   if (!printers[data.MainboardID].hasOwnProperty('attributes')) {
     printers[data.MainboardID]['attributes'] = {}
   }
-  var filter = ['Resolution', 'XYZsize', 'NumberOfVideoStreamConnected', 'MaximumVideoStreamAllowed', 'UsbDiskStatus', 'Capabilities', 'SupportFileType', 'DevicesStatus', 'ReleaseFilmMax', 'CameraStatus', 'RemainingMemory', 'TLPNoCapPos', 'TLPStartCapPos', 'TLPInterLayers']
+  var filter = ['Resolution', 'XYZsize', 'NumberOfVideoStreamConnected', 'MaximumVideoStreamAllowed', 'UsbDiskStatus', 'UsbRemainingMemory', 'UsbTotalSpace', 'Capabilities', 'SupportFileType', 'DevicesStatus', 'ReleaseFilmMax', 'CameraStatus', 'RemainingMemory', 'TotalSpace', 'TLPNoCapPos', 'TLPStartCapPos', 'TLPInterLayers']
   $.each(data.Attributes, function (key, val) {
     if (filter.includes(key)) {
       printers[data.MainboardID]['attributes'][key] = val
     }
   })
   createTable('Attributes', data.Attributes)
-  
-  // Update storage display if RemainingMemory is present
-  if (data.Attributes.RemainingMemory !== undefined) {
-    updateStorageDisplay(data.Attributes.RemainingMemory);
+
+  // Log storage attributes for debugging
+  console.log('=== Storage Attributes ===');
+  console.log('Internal - RemainingMemory:', data.Attributes.RemainingMemory);
+  console.log('Internal - TotalSpace:', data.Attributes.TotalSpace);
+  console.log('USB - UsbDiskStatus:', data.Attributes.UsbDiskStatus);
+  console.log('USB - UsbRemainingMemory:', data.Attributes.UsbRemainingMemory);
+  console.log('USB - UsbTotalSpace:', data.Attributes.UsbTotalSpace);
+  console.log('=========================');
+
+  // Update storage display if RemainingMemory or USB storage is present
+  if (data.Attributes.RemainingMemory !== undefined || data.Attributes.TotalSpace !== undefined) {
+    updateStorageDisplay(data.Attributes.RemainingMemory, data.Attributes.TotalSpace, data.Attributes.UsbRemainingMemory, data.Attributes.UsbTotalSpace, data.Attributes.UsbDiskStatus);
   }
 }
 
-function updateStorageDisplay(remainingBytes) {
-  // RemainingMemory is in bytes, convert to GB
-  const remainingGB = remainingBytes / (1024 * 1024 * 1024);
-  
-  // Try to determine total storage from remaining
-  // Most printers have 16GB or 32GB internal storage
-  let totalGB = 32;
-  if (remainingGB > 32) {
-    totalGB = 64;
-  } else if (remainingGB < 16) {
-    totalGB = 16;
-  }
-  
-  const usedGB = totalGB - remainingGB;
-  const usedPercent = (usedGB / totalGB * 100).toFixed(1);
-  
+function updateStorageDisplay(remainingBytes, totalBytes, usbRemainingBytes, usbTotalBytes, usbStatus) {
   // Format sizes nicely
-  function formatSize(gb) {
+  function formatSize(bytes) {
+    if (!bytes || bytes === 0) return '--';
+    const gb = bytes / (1024 * 1024 * 1024);
     if (gb < 1) {
       return (gb * 1024).toFixed(0) + ' MB';
     }
     return gb.toFixed(2) + ' GB';
   }
-  
-  // Update simple display (main page)
-  $('#storageUsedSimple').text(formatSize(usedGB));
-  $('#storageFreeSimple').text(formatSize(remainingGB));
-  $('#storageInfo').show();
-  
-  // Update detailed display (settings modal)
-  $('#storageUsed').text(formatSize(usedGB));
-  $('#storageTotal').text(formatSize(totalGB));
-  $('#storageFree').text(formatSize(remainingGB));
-  $('#storagePercent').text(usedPercent + '%');
-  $('#storageProgressBar').css('width', usedPercent + '%').attr('aria-valuenow', usedPercent);
-  
-  // Color code the progress bar
-  const $progressBar = $('#storageProgressBar');
-  $progressBar.removeClass('bg-success bg-warning bg-danger');
-  if (usedPercent < 70) {
-    $progressBar.addClass('bg-success');
-  } else if (usedPercent < 90) {
-    $progressBar.addClass('bg-warning');
+
+  function calculatePercent(used, total) {
+    if (!total || total === 0) return 0;
+    return ((used / total) * 100).toFixed(1);
+  }
+
+  // Internal Storage
+  if (remainingBytes !== undefined) {
+    const remainingGB = remainingBytes / (1024 * 1024 * 1024);
+
+    // Use TotalSpace if available, otherwise estimate
+    let totalGB = totalBytes ? totalBytes / (1024 * 1024 * 1024) : null;
+    if (!totalGB) {
+      // Estimate based on remaining
+      totalGB = 32;
+      if (remainingGB > 32) {
+        totalGB = 64;
+      } else if (remainingGB < 16) {
+        totalGB = 16;
+      }
+    }
+
+    const usedGB = totalGB - remainingGB;
+    const usedPercent = calculatePercent(usedGB, totalGB);
+
+    // Update simple display (main page)
+    $('#storageUsedSimple').text(formatSize(usedGB * 1024 * 1024 * 1024));
+    $('#storageFreeSimple').text(formatSize(remainingBytes));
+    $('#storageInfo').show();
+
+    // Update detailed display (settings modal) - Internal Storage
+    $('#storageUsed').text(formatSize(usedGB * 1024 * 1024 * 1024));
+    $('#storageTotal').text(formatSize(totalGB * 1024 * 1024 * 1024));
+    $('#storageFree').text(formatSize(remainingBytes));
+    $('#storagePercent').text(usedPercent + '%');
+    $('#storageProgressBar').css('width', usedPercent + '%').attr('aria-valuenow', usedPercent);
+
+    // Color code the progress bar
+    const $progressBar = $('#storageProgressBar');
+    $progressBar.removeClass('bg-success bg-warning bg-danger');
+    if (usedPercent < 70) {
+      $progressBar.addClass('bg-success');
+    } else if (usedPercent < 90) {
+      $progressBar.addClass('bg-warning');
+    } else {
+      $progressBar.addClass('bg-danger');
+    }
+  }
+
+  // USB Storage
+  if (usbStatus === 1 && usbRemainingBytes !== undefined && usbTotalBytes !== undefined) {
+    const usbUsedBytes = usbTotalBytes - usbRemainingBytes;
+    const usbUsedPercent = calculatePercent(usbUsedBytes, usbTotalBytes);
+
+    // Update simple display (main page) - USB
+    $('#usbStorageUsedSimple').text(formatSize(usbUsedBytes));
+    $('#usbStorageFreeSimple').text(formatSize(usbRemainingBytes));
+    $('#usbStorageInfoSimple').show();
+
+    // Update USB storage display (settings modal)
+    $('#usbStorageSection').show();
+    $('#usbStorageUsed').text(formatSize(usbUsedBytes));
+    $('#usbStorageTotal').text(formatSize(usbTotalBytes));
+    $('#usbStorageFree').text(formatSize(usbRemainingBytes));
+    $('#usbStoragePercent').text(usbUsedPercent + '%');
+    $('#usbStorageProgressBar').css('width', usbUsedPercent + '%').attr('aria-valuenow', usbUsedPercent);
+
+    // Color code the USB progress bar
+    const $usbProgressBar = $('#usbStorageProgressBar');
+    $usbProgressBar.removeClass('bg-success bg-warning bg-danger');
+    if (usbUsedPercent < 70) {
+      $usbProgressBar.addClass('bg-success');
+    } else if (usbUsedPercent < 90) {
+      $usbProgressBar.addClass('bg-warning');
+    } else {
+      $usbProgressBar.addClass('bg-danger');
+    }
   } else {
-    $progressBar.addClass('bg-danger');
+    // Hide USB storage section if no USB connected
+    $('#usbStorageSection').hide();
+    $('#usbStorageInfoSimple').hide();
   }
 }
 
@@ -435,6 +490,9 @@ function formatDisplayValue(key, val, tableName) {
 
     switch(key) {
       case 'RemainingMemory':
+      case 'TotalSpace':
+      case 'UsbRemainingMemory':
+      case 'UsbTotalSpace':
         var gb = (val / (1024 * 1024 * 1024)).toFixed(2);
         return gb + ' GB';
 

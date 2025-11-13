@@ -211,12 +211,20 @@
             
             <div class="file-manager-container">
               <!-- Simple Storage Info -->
-              <div class="alert alert-info d-flex align-items-center justify-content-between mb-3" role="alert" id="storageInfo" style="display: none !important;">
-                <div>
-                  <i class="bi bi-hdd me-2"></i>
-                  <strong>Storage:</strong> <span id="storageUsedSimple">--</span> used / <span id="storageFreeSimple">--</span> available
+              <div class="alert alert-info mb-3" role="alert" id="storageInfo" style="display: none !important;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div>
+                    <i class="bi bi-hdd me-2"></i>
+                    <strong>Internal:</strong> <span id="storageUsedSimple">--</span> used / <span id="storageFreeSimple">--</span> free
+                  </div>
                 </div>
-                <small class="text-muted">See Settings for details</small>
+                <div class="d-flex align-items-center justify-content-between" id="usbStorageInfoSimple" style="display: none !important;">
+                  <div>
+                    <i class="bi bi-usb-drive me-2"></i>
+                    <strong>USB:</strong> <span id="usbStorageUsedSimple">--</span> used / <span id="usbStorageFreeSimple">--</span> free
+                  </div>
+                </div>
+                <small class="text-muted d-block mt-2">See Settings for details</small>
               </div>
               
               <div class="file-manager-toolbar mb-3">
@@ -350,11 +358,11 @@
               
               <div class="tab-pane fade" id="storage-pane">
                 <div class="mb-4">
-                  <h6 class="mb-3">Printer Storage</h6>
+                  <h6 class="mb-3"><i class="bi bi-hdd me-2"></i>Internal Storage</h6>
                   <div class="alert alert-info" id="storageDetailInfo">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                       <div>
-                        <strong>Total Storage:</strong> <span id="storageTotal">--</span>
+                        <strong>Total:</strong> <span id="storageTotal">--</span>
                       </div>
                       <div>
                         <strong>Used:</strong> <span id="storageUsed">--</span>
@@ -368,7 +376,30 @@
                         <span id="storagePercent">0%</span>
                       </div>
                     </div>
-                    <small class="text-muted">Storage includes print history, thumbnails, and system data</small>
+                    <small class="text-muted">Includes print history, thumbnails, and system data</small>
+                  </div>
+                </div>
+
+                <div class="mb-4" id="usbStorageSection" style="display: none;">
+                  <h6 class="mb-3"><i class="bi bi-usb-drive me-2"></i>USB Storage</h6>
+                  <div class="alert alert-success">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                      <div>
+                        <strong>Total:</strong> <span id="usbStorageTotal">--</span>
+                      </div>
+                      <div>
+                        <strong>Used:</strong> <span id="usbStorageUsed">--</span>
+                      </div>
+                      <div>
+                        <strong>Free:</strong> <span id="usbStorageFree">--</span>
+                      </div>
+                    </div>
+                    <div class="progress mb-2" style="height: 25px;">
+                      <div class="progress-bar" role="progressbar" id="usbStorageProgressBar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <span id="usbStoragePercent">0%</span>
+                      </div>
+                    </div>
+                    <small class="text-muted"><i class="bi bi-check-circle me-1"></i>USB drive connected</small>
                   </div>
                 </div>
                 
