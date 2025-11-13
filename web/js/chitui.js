@@ -287,6 +287,14 @@ function addPrinters(printers) {
       $(this).hide()
     })
 
+    // Set initial connection status based on printer.connected field
+    if (printer.connected === false) {
+      item.find('.printerStatusBadge').removeClass('status-online').addClass('status-offline')
+      item.find('.printerStatus').removeClass('text-success').addClass('text-danger')
+      item.find('.printerStatus span').text('Offline')
+      item.find('.printerInfo small').text('Disconnected')
+    }
+
     item.on('click', function () {
       showPrinter($(this).data('printer-id'))
     })

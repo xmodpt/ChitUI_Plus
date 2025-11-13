@@ -1373,6 +1373,7 @@ def save_discovered_printer(data, printer_dict):
     printer['ip'] = j['Data']['MainboardIP']
     printer['protocol'] = j['Data']['ProtocolVersion']
     printer['firmware'] = j['Data']['FirmwareVersion']
+    printer['connected'] = False  # Initially not connected until WebSocket establishes
     printer_dict[j['Data']['MainboardID']] = printer
     printers[j['Data']['MainboardID']] = printer
     logger.info("Discovered: {n} ({i})".format(
@@ -1402,6 +1403,7 @@ def connect_printers(printers_to_connect):
 def ws_connected_handler(printer_id):
     if printer_id in printers:
         logger.info("Connected to: {n}".format(n=printers[printer_id]['name']))
+        printers[printer_id]['connected'] = True  # Mark printer as connected
         # Emit online status to frontend
         socketio.emit('printer_online', {'MainboardID': printer_id, 'name': printers[printer_id]['name']})
         socketio.emit('printers', printers)
@@ -1411,6 +1413,7 @@ def ws_closed_handler(printer_id, status_code, message):
     if printer_id in printers:
         logger.info("Connection to '{n}' closed: {m} ({s})".format(
             n=printers[printer_id]['name'], m=message, s=status_code))
+        printers[printer_id]['connected'] = False  # Mark printer as disconnected
         # Emit offline status to frontend
         socketio.emit('printer_offline', {'MainboardID': printer_id, 'name': printers[printer_id]['name']})
 
@@ -1419,6 +1422,7 @@ def ws_error_handler(printer_id, error):
     if printer_id in printers:
         logger.info("Connection to '{n}' error: {e}".format(
             n=printers[printer_id]['name'], e=error))
+        printers[printer_id]['connected'] = False  # Mark printer as disconnected
         # Emit offline status to frontend on error
         socketio.emit('printer_offline', {'MainboardID': printer_id, 'name': printers[printer_id]['name']})
 
@@ -1469,11 +1473,12 @@ def load_saved_printers():
                     'brand': printer_config.get('brand', 'Unknown'),
                     'ip': printer_config['ip'],
                     'protocol': printer_config.get('protocol', 'Unknown'),
-                    'firmware': printer_config.get('firmware', 'Unknown')
+                    'firmware': printer_config.get('firmware', 'Unknown'),
+                    'connected': False  # Initially not connected until WebSocket establishes
                 }
                 printers[printer_id] = printer
                 logger.info(f"Loaded saved printer: {printer_config['name']} ({printer_config['ip']})")
-            
+
             if printer_id not in websockets:
                 connect_printers({printer_id: printers[printer_id]})
 
