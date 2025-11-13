@@ -97,8 +97,8 @@ One of ChitUI's standout features is **automatic USB gadget refresh**. When you 
 
 ### Hardware
 
-- **Raspberry Pi** (Zero W, 3, 4, or 5 recommended)
-- **Elegoo resin printer** (Saturn, Mars, etc.)
+- **Raspberry Pi** (Zero 2W, 3, 4, or 5 recommended)
+- **Elegoo resin printer** (Saturn 4, Saturn 4 Ultra, Saturn 4 Ultra 16k, etc.)
 - **Network connection** - WiFi or Ethernet
 - **USB cable** (for USB gadget mode)
  
@@ -106,7 +106,8 @@ One of ChitUI's standout features is **automatic USB gadget refresh**. When you 
 ### Software
 
 - **Python 3.7+**
-- **Raspberry Pi OS** (Bullseye or newer recommended)
+- **Raspberry Pi OS** (this is based on an old RaspiOS image from 2023
+  https://downloads.raspberrypi.com/raspios_arm64/images/raspios_arm64-2023-10-10/2023-10-10-raspios-bookworm-arm64.img.xz)
 - **USB gadget configured** (optional, for USB mode)
 
 ### Python Dependencies
