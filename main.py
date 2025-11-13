@@ -46,6 +46,9 @@ app = Flask(__name__,
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 websockets = {}
 printers = {}
+printer_last_response = {}  # Track last response time for health checks
+health_check_interval = 10  # Check every 10 seconds
+health_check_timeout = 20   # Mark offline if no response for 20 seconds
 
 # ===== Plugin System =====
 plugin_manager = PluginManager(os.path.join(os.path.dirname(__file__), 'plugins'))
@@ -1404,6 +1407,7 @@ def ws_connected_handler(printer_id):
     if printer_id in printers:
         logger.info("Connected to: {n}".format(n=printers[printer_id]['name']))
         printers[printer_id]['connected'] = True  # Mark printer as connected
+        printer_last_response[printer_id] = time.time()  # Set initial response time
         # Emit online status to frontend
         socketio.emit('printer_online', {'MainboardID': printer_id, 'name': printers[printer_id]['name']})
         socketio.emit('printers', printers)
@@ -1432,9 +1436,10 @@ def ws_msg_handler(ws, msg):
         data = json.loads(msg)
         logger.debug("printer >> \n{m}", m=json.dumps(data, indent=4))
 
-        # Notify plugins of printer message
+        # Track last response time for health checks
         printer_id = data.get('MainboardID')
         if printer_id:
+            printer_last_response[printer_id] = time.time()
             plugin_manager.notify_printer_message(printer_id, data)
 
         if data['Topic'].startswith("sdcp/response/"):
@@ -1453,6 +1458,41 @@ def ws_msg_handler(ws, msg):
             logger.warning("--- UNKNOWN MESSAGE ---")
     except Exception as e:
         logger.error(f"Error handling websocket message: {e}")
+
+
+def printer_health_check():
+    """Periodically check printer health by sending status requests"""
+    while True:
+        try:
+            time.sleep(health_check_interval)
+            current_time = time.time()
+
+            for printer_id in list(printers.keys()):
+                # Skip if printer doesn't have WebSocket connection
+                if printer_id not in websockets:
+                    continue
+
+                # Check if printer is marked as connected
+                if printers[printer_id].get('connected', False):
+                    # Check last response time
+                    last_response = printer_last_response.get(printer_id, 0)
+                    time_since_response = current_time - last_response
+
+                    # If no response in timeout period, mark as offline
+                    if time_since_response > health_check_timeout:
+                        logger.warning(f"Printer {printers[printer_id]['name']} not responding ({time_since_response:.1f}s), marking offline")
+                        printers[printer_id]['connected'] = False
+                        socketio.emit('printer_offline', {
+                            'MainboardID': printer_id,
+                            'name': printers[printer_id]['name']
+                        })
+                    else:
+                        # Send status request as heartbeat
+                        logger.debug(f"Health check: Sending status request to {printers[printer_id]['name']}")
+                        get_printer_status(printer_id)
+
+        except Exception as e:
+            logger.error(f"Error in health check: {e}")
 
 
 def load_saved_printers():
@@ -1502,6 +1542,11 @@ def main():
             logger.warning("No printers discovered.")
 
     load_saved_printers()
+
+    # Start health check thread
+    logger.info(f"Starting printer health check (interval: {health_check_interval}s, timeout: {health_check_timeout}s)")
+    health_check_thread = Thread(target=printer_health_check, daemon=True)
+    health_check_thread.start()
 
 
 if __name__ == "__main__":
