@@ -291,7 +291,7 @@ function addPrinters(printers) {
     if (printer.connected === false) {
       item.find('.printerStatusBadge').removeClass('status-online').addClass('status-offline')
       item.find('.printerStatus').removeClass('text-success').addClass('text-danger')
-      item.find('.printerStatus span').text('Offline')
+      item.find('.printerStatus').text('Offline')
       item.find('.printerInfo small').text('Disconnected')
     }
 
@@ -680,6 +680,7 @@ function setPrinterOnlineStatus(id, isOnline) {
   var printerCard = $('#printer_' + id);
   var statusBadge = printerCard.find('.printerStatusBadge');
   var statusText = printerCard.find('.printerStatus');
+  var statusIcon = statusBadge.find('i');
   var info = printerCard.find('.printerInfo');
 
   // Hide spinner
@@ -690,15 +691,15 @@ function setPrinterOnlineStatus(id, isOnline) {
     // Set to online/idle state
     statusBadge.removeClass('status-offline').addClass('status-online');
     statusText.removeClass('text-danger').addClass('text-success');
-    statusText.find('i').removeClass().addClass('bi-circle-fill');
-    statusText.find('span').text('Online');
+    statusIcon.removeClass().addClass('bi-circle-fill');
+    statusText.text('Online');
     info.text('Idle');
   } else {
     // Set to offline state
     statusBadge.removeClass('status-online').addClass('status-offline');
     statusText.removeClass('text-success').addClass('text-danger');
-    statusText.find('i').removeClass().addClass('bi-circle-fill');
-    statusText.find('span').text('Offline');
+    statusIcon.removeClass().addClass('bi-circle-fill');
+    statusText.text('Offline');
     info.text('Disconnected');
   }
 }
