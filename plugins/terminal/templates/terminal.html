@@ -3,8 +3,14 @@
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0">
       <i class="bi bi-terminal"></i> Terminal
+      <span class="badge bg-info ms-2" id="filterBadge" style="font-size: 0.7rem;">
+        <i class="bi bi-funnel"></i> Filtered
+      </span>
     </h5>
     <div>
+      <button class="btn btn-sm btn-outline-info" id="terminalToggleFilter" title="Toggle message filtering">
+        <i class="bi bi-funnel-fill"></i> Filter
+      </button>
       <button class="btn btn-sm btn-outline-secondary" id="terminalClear">
         <i class="bi bi-x-circle"></i> Clear
       </button>
@@ -19,6 +25,8 @@
         ChitUI Terminal - Ready
         <br>
         Monitoring printer communication...
+        <br>
+        <span style="color: #00bfff;">Filter Active:</span> Showing only System Commands, Print Commands, Print Status, and System Errors
       </div>
     </div>
     <div class="terminal-input-container">
@@ -122,8 +130,51 @@
 <script>
 (function() {
   let autoScroll = true;
+  let filterEnabled = true;
   const output = document.getElementById('terminalOutput');
   const input = document.getElementById('terminalInput');
+  const filterBadge = document.getElementById('filterBadge');
+  const filterButton = document.getElementById('terminalToggleFilter');
+
+  // Load filter settings
+  fetch('/plugin/terminal/filter')
+    .then(r => r.json())
+    .then(data => {
+      filterEnabled = data.enabled;
+      updateFilterUI();
+    });
+
+  // Filter toggle
+  filterButton.addEventListener('click', function() {
+    filterEnabled = !filterEnabled;
+    fetch('/plugin/terminal/filter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: filterEnabled })
+    })
+    .then(r => r.json())
+    .then(data => {
+      filterEnabled = data.enabled;
+      updateFilterUI();
+      addLocalMessage(filterEnabled ?
+        'Filter ENABLED: Showing only System Commands, Print Commands, Print Status, System Errors' :
+        'Filter DISABLED: Showing all messages');
+    });
+  });
+
+  function updateFilterUI() {
+    if (filterEnabled) {
+      filterBadge.style.display = 'inline-block';
+      filterButton.classList.add('active');
+      filterButton.classList.remove('btn-outline-info');
+      filterButton.classList.add('btn-info');
+    } else {
+      filterBadge.style.display = 'none';
+      filterButton.classList.remove('active');
+      filterButton.classList.add('btn-outline-info');
+      filterButton.classList.remove('btn-info');
+    }
+  }
 
   // Auto-scroll toggle
   document.getElementById('terminalToggleScroll').addEventListener('click', function() {
