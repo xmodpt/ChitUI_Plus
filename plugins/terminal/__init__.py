@@ -158,6 +158,26 @@ class Plugin(ChitUIPlugin):
         if 'Topic' in message:
             topic = message.get('Topic', '')
 
+            # Response messages to commands
+            if 'response' in topic.lower():
+                # Extract the Data field from the response
+                if 'Data' in message:
+                    response_data = message['Data']
+                    # Check what type of response this is
+                    if isinstance(response_data, dict):
+                        if 'Status' in response_data:
+                            return self.format_sdcp_status(response_data['Status'])
+                        elif 'Attributes' in response_data:
+                            return self.format_sdcp_attributes(response_data['Attributes'])
+                        elif 'FileList' in response_data:
+                            files = response_data.get('FileList', [])
+                            return f"Files: {len(files)} items"
+                        else:
+                            # Generic response
+                            import json
+                            return f"Response: {json.dumps(response_data)}"
+                return "Response received"
+
             # Status messages
             if 'status' in topic.lower() and 'Status' in message:
                 return self.format_sdcp_status(message['Status'])
@@ -396,9 +416,10 @@ class Plugin(ChitUIPlugin):
         if any(attr in msg_lower for attr in ['fw:', 'ip:', 'res:', 'free:', 'saturn', 'mars', 'jupiter', 'elegoo']):
             return 'system_command'
 
-        # SDCP command names
+        # SDCP command names and responses
         if any(cmd in msg_lower for cmd in ['get status', 'get attributes', 'get file', 'get history',
-                                              'start print', 'pause print', 'stop print', 'resume print']):
+                                              'start print', 'pause print', 'stop print', 'resume print',
+                                              'response:', 'files:', 'response received']):
             return 'print_command'
 
         # System commands (M codes and system G-codes)
