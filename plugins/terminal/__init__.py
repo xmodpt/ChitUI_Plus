@@ -131,6 +131,21 @@ class Plugin(ChitUIPlugin):
         # Extract readable content from message dictionary
         # Common message formats from 3D printer firmware:
 
+        # SDCP Protocol Messages (ELEGOO printers)
+        if 'Topic' in message:
+            topic = message.get('Topic', '')
+
+            # Status messages
+            if 'status' in topic.lower() and 'Status' in message:
+                return self.format_sdcp_status(message['Status'])
+
+            # Attribute messages (device info)
+            if 'attributes' in topic.lower() and 'Attributes' in message:
+                return self.format_sdcp_attributes(message['Attributes'])
+
+            # Other SDCP messages - show topic
+            return f"SDCP: {topic}"
+
         # Command sent to printer
         if 'command' in message:
             cmd = message['command']
@@ -255,6 +270,92 @@ class Plugin(ChitUIPlugin):
         # Fallback
         import json
         return json.dumps(temp_dict)
+
+    def format_sdcp_status(self, status_dict):
+        """Format SDCP status messages for ELEGOO printers"""
+        parts = []
+
+        # Print information (most important)
+        if 'PrintInfo' in status_dict:
+            print_info = status_dict['PrintInfo']
+            status_code = print_info.get('Status', 'Unknown')
+
+            # Map status codes to readable names
+            status_names = {
+                0: 'Idle',
+                1: 'Printing',
+                2: 'Paused',
+                3: 'Complete',
+                8: 'Idle',  # Another idle state
+                # Add more as discovered
+            }
+            status_name = status_names.get(status_code, f'Status{status_code}')
+
+            current_layer = print_info.get('CurrentLayer', 0)
+            total_layer = print_info.get('TotalLayer', 0)
+            filename = print_info.get('Filename', 'N/A')
+            error_num = print_info.get('ErrorNumber', 0)
+
+            parts.append(f"Status: {status_name}")
+
+            if total_layer > 0:
+                progress = (current_layer / total_layer * 100) if total_layer > 0 else 0
+                parts.append(f"Layer: {current_layer}/{total_layer} ({progress:.1f}%)")
+
+            if filename and filename != 'N/A':
+                parts.append(f"File: {filename}")
+
+            if error_num != 0:
+                parts.append(f"ERROR: {error_num}")
+
+        # Temperature
+        if 'TempOfUVLED' in status_dict:
+            temp = status_dict['TempOfUVLED']
+            parts.append(f"LED Temp: {temp:.1f}°C")
+
+        # Release film position
+        if 'ReleaseFilm' in status_dict:
+            film_pos = status_dict['ReleaseFilm']
+            parts.append(f"Film: {film_pos}")
+
+        return ' | '.join(parts) if parts else 'Status: OK'
+
+    def format_sdcp_attributes(self, attr_dict):
+        """Format SDCP attributes messages for ELEGOO printers"""
+        parts = []
+
+        # Machine name and firmware
+        machine_name = attr_dict.get('MachineName', attr_dict.get('Name', 'Unknown'))
+        firmware = attr_dict.get('FirmwareVersion', 'N/A')
+
+        parts.append(f"{machine_name}")
+        parts.append(f"FW: {firmware}")
+
+        # Network info
+        if 'MainboardIP' in attr_dict:
+            ip = attr_dict['MainboardIP']
+            parts.append(f"IP: {ip}")
+
+        # Resolution
+        if 'Resolution' in attr_dict:
+            res = attr_dict['Resolution']
+            parts.append(f"Res: {res}")
+
+        # Remaining memory
+        if 'RemainingMemory' in attr_dict:
+            mem_bytes = attr_dict['RemainingMemory']
+            mem_gb = mem_bytes / (1024**3)
+            parts.append(f"Free: {mem_gb:.2f}GB")
+
+        # Device status summary
+        if 'DevicesStatus' in attr_dict:
+            devices = attr_dict['DevicesStatus']
+            # Only show if there's a problem
+            failed_devices = [k for k, v in devices.items() if v != 1]
+            if failed_devices:
+                parts.append(f"DEVICE ERRORS: {', '.join(failed_devices)}")
+
+        return ' | '.join(parts)
 
     def categorize_message(self, message):
         """Categorize message type for filtering"""
