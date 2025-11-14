@@ -1327,10 +1327,21 @@ def sio_handle_terminal_command(data):
             logger.error(f"Invalid command format: {command}")
             return
 
-        # Send the command
-        send_printer_cmd(printer_id, cmd, cmd_data)
-        logger.info(f"Terminal command sent: Cmd={cmd} Data={cmd_data}")
+        # Validate cmd is a number
+        if cmd is None:
+            logger.error(f"Could not extract command number from: {command}")
+            return
 
+        # Send the command
+        logger.info(f"Terminal: Sending command {cmd} with data {cmd_data} to printer {printer_id}")
+        result = send_printer_cmd(printer_id, cmd, cmd_data)
+        if result:
+            logger.info(f"Terminal command sent successfully: Cmd={cmd}")
+        else:
+            logger.error(f"Failed to send terminal command: Cmd={cmd}")
+
+    except ValueError as e:
+        logger.error(f"Invalid command number: {command} - {e}")
     except Exception as e:
         logger.error(f"Failed to parse terminal command: {e}")
 
