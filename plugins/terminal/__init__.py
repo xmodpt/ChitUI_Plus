@@ -96,8 +96,31 @@ class Plugin(ChitUIPlugin):
             if not printer_id or not command:
                 return {'ok': False, 'msg': 'Missing printer_id or command'}
 
+            # Format command for display
+            if isinstance(command, dict):
+                cmd_display = f"Cmd: {command.get('Cmd', '?')}"
+                if 'Data' in command and command['Data']:
+                    cmd_display += f" | Data: {command['Data']}"
+            elif isinstance(command, (int, str)):
+                # Simple command number
+                cmd_names = {
+                    0: "Get Status",
+                    1: "Get Attributes",
+                    128: "Start Print",
+                    129: "Pause Print",
+                    130: "Stop Print",
+                    131: "Resume Print",
+                    258: "Get File List",
+                    320: "Get History"
+                }
+                cmd_num = int(command) if isinstance(command, str) and command.isdigit() else command
+                cmd_name = cmd_names.get(cmd_num, f"Cmd {cmd_num}")
+                cmd_display = cmd_name
+            else:
+                cmd_display = str(command)
+
             # Log the outgoing command
-            self.log_message(printer_id, 'SEND', command)
+            self.log_message(printer_id, 'SEND', cmd_display)
 
             # Emit to main app for sending to printer
             socketio.emit('terminal_command', {

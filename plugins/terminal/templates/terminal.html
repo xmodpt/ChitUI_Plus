@@ -36,7 +36,7 @@
           type="text"
           class="form-control"
           id="terminalInput"
-          placeholder="Enter command (e.g., M105, G28, M999)..."
+          placeholder="Enter command (e.g., 0 for status, 1 for info, 258 for files)..."
           autocomplete="off"
         >
         <button class="btn btn-primary" id="terminalSend">
@@ -71,19 +71,21 @@
 }
 
 .terminal-message {
-  margin-bottom: 0.5rem;
-  white-space: pre-wrap;
-  word-break: break-all;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+  font-size: 0.85rem;
 }
 
 .terminal-timestamp {
   color: #666;
-  margin-right: 0.5rem;
+  white-space: nowrap;
 }
 
 .terminal-direction {
   font-weight: bold;
+  margin-left: 0.5rem;
   margin-right: 0.5rem;
+  white-space: nowrap;
 }
 
 .terminal-direction.send {
@@ -97,6 +99,12 @@
 .terminal-printer-id {
   color: #00bfff;
   margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.terminal-content {
+  color: #e0e0e0;
+  word-wrap: break-word;
 }
 
 .terminal-input-container {
