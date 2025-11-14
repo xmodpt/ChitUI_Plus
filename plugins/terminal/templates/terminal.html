@@ -207,15 +207,19 @@
       return;
     }
 
+    console.log('Terminal: Sending command to printer', currentPrinter, 'command:', command);
+
     // Try to parse as JSON
     try {
       const parsed = JSON.parse(command);
+      console.log('Terminal: Parsed as JSON:', parsed);
       socket.emit('terminal_send_command', {
         printer_id: currentPrinter,
         command: parsed
       });
     } catch (e) {
       // If not JSON, send as-is
+      console.log('Terminal: Sending as plain command:', command);
       socket.emit('terminal_send_command', {
         printer_id: currentPrinter,
         command: command
