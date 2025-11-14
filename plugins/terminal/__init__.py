@@ -111,11 +111,7 @@ class Plugin(ChitUIPlugin):
         """Log incoming printer messages"""
         try:
             # Format the message for display
-            if isinstance(message, dict):
-                import json
-                msg_str = json.dumps(message, indent=2)
-            else:
-                msg_str = str(message)
+            msg_str = self.format_message(message)
 
             # Apply filtering if enabled
             if self.filter_enabled:
@@ -126,6 +122,139 @@ class Plugin(ChitUIPlugin):
             self.log_message(printer_id, 'RECV', msg_str)
         except Exception as e:
             print(f"Error logging message: {e}")
+
+    def format_message(self, message):
+        """Format message for readable terminal display"""
+        if not isinstance(message, dict):
+            return str(message)
+
+        # Extract readable content from message dictionary
+        # Common message formats from 3D printer firmware:
+
+        # Command sent to printer
+        if 'command' in message:
+            cmd = message['command']
+            if isinstance(cmd, dict):
+                # Handle nested command structure
+                return self.format_command_dict(cmd)
+            return str(cmd)
+
+        # Response from printer
+        if 'response' in message:
+            resp = message['response']
+            if isinstance(resp, str):
+                return resp
+            elif isinstance(resp, dict):
+                return self.format_command_dict(resp)
+
+        # Raw line from printer
+        if 'line' in message:
+            return str(message['line'])
+
+        # Temperature report
+        if 'temps' in message or 'temperature' in message:
+            return self.format_temperature(message)
+
+        # Status update
+        if 'status' in message:
+            status = message['status']
+            if isinstance(status, str):
+                return f"Status: {status}"
+            elif isinstance(status, dict):
+                return self.format_command_dict(status)
+
+        # Print progress
+        if 'progress' in message:
+            progress = message['progress']
+            return f"Progress: {progress}%"
+
+        # File operation
+        if 'file' in message:
+            file_name = message['file']
+            operation = message.get('operation', 'unknown')
+            return f"{operation.upper()}: {file_name}"
+
+        # Error message
+        if 'error' in message:
+            return f"ERROR: {message['error']}"
+
+        # Generic message with 'msg' or 'message' field
+        if 'msg' in message:
+            return str(message['msg'])
+        if 'message' in message and isinstance(message['message'], str):
+            return message['message']
+
+        # If message has only one key, display its value
+        if len(message) == 1:
+            key, value = list(message.items())[0]
+            if isinstance(value, str):
+                return value
+            elif isinstance(value, dict):
+                return self.format_command_dict(value)
+
+        # Fallback: display as JSON for unknown formats
+        import json
+        return json.dumps(message, indent=2)
+
+    def format_command_dict(self, cmd_dict):
+        """Format command dictionary for display"""
+        if not isinstance(cmd_dict, dict):
+            return str(cmd_dict)
+
+        # G-code or M-code command
+        if 'code' in cmd_dict:
+            code = cmd_dict['code']
+            params = cmd_dict.get('params', {})
+            param_str = ' '.join(f"{k}{v}" for k, v in params.items())
+            return f"{code} {param_str}".strip()
+
+        # Command with type and data
+        if 'type' in cmd_dict and 'data' in cmd_dict:
+            return f"{cmd_dict['type']}: {cmd_dict['data']}"
+
+        # Simple key-value pairs
+        parts = []
+        for k, v in cmd_dict.items():
+            if isinstance(v, (str, int, float)):
+                parts.append(f"{k}={v}")
+
+        if parts:
+            return ' '.join(parts)
+
+        # Fallback to JSON
+        import json
+        return json.dumps(cmd_dict)
+
+    def format_temperature(self, temp_dict):
+        """Format temperature data for display"""
+        parts = []
+
+        # Hotend temperature
+        if 'tool0' in temp_dict or 't0' in temp_dict:
+            temp_data = temp_dict.get('tool0', temp_dict.get('t0'))
+            if isinstance(temp_data, dict):
+                actual = temp_data.get('actual', temp_data.get('current', '?'))
+                target = temp_data.get('target', '?')
+                parts.append(f"T0:{actual}/{target}")
+            else:
+                parts.append(f"T0:{temp_data}")
+
+        # Bed temperature
+        if 'bed' in temp_dict or 'b' in temp_dict:
+            temp_data = temp_dict.get('bed', temp_dict.get('b'))
+            if isinstance(temp_data, dict):
+                actual = temp_data.get('actual', temp_data.get('current', '?'))
+                target = temp_data.get('target', '?')
+                parts.append(f"B:{actual}/{target}")
+            else:
+                parts.append(f"B:{temp_data}")
+
+        if parts:
+            return ' '.join(parts)
+
+        # Fallback
+        import json
+        return json.dumps(temp_dict)
 
     def categorize_message(self, message):
         """Categorize message type for filtering"""
