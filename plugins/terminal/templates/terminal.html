@@ -201,8 +201,9 @@
     const command = input.value.trim();
     if (!command) return;
 
-    if (!currentPrinter) {
-      addLocalMessage('ERROR: No printer selected');
+    // Check if currentPrinter is defined (from main chitui.js)
+    if (typeof currentPrinter === 'undefined' || !currentPrinter) {
+      addLocalMessage('ERROR: No printer selected. Please select a printer first.');
       return;
     }
 

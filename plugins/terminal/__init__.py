@@ -388,6 +388,19 @@ class Plugin(ChitUIPlugin):
         if any(err in msg_lower for err in ['error', 'err:', 'fail', 'warning', 'warn:', 'exception', 'fault']):
             return 'system_error'
 
+        # SDCP Protocol messages (ELEGOO printers)
+        if any(sdcp in msg_lower for sdcp in ['status:', 'layer:', 'file:', 'idle', 'printing', 'paused', 'complete']):
+            return 'print_status'
+
+        # SDCP device attributes (firmware, model, IP, etc.)
+        if any(attr in msg_lower for attr in ['fw:', 'ip:', 'res:', 'free:', 'saturn', 'mars', 'jupiter', 'elegoo']):
+            return 'system_command'
+
+        # SDCP command names
+        if any(cmd in msg_lower for cmd in ['get status', 'get attributes', 'get file', 'get history',
+                                              'start print', 'pause print', 'stop print', 'resume print']):
+            return 'print_command'
+
         # System commands (M codes and system G-codes)
         if any(cmd in msg_lower for cmd in ['m110', 'm111', 'm112', 'm115', 'm117', 'm118', 'm119',
                                               'm120', 'm121', 'm122', 'm123', 'm124', 'm125',
@@ -396,8 +409,8 @@ class Plugin(ChitUIPlugin):
 
         # Print status (temperature, position, status reports)
         if any(status in msg_lower for status in ['t:', 'b:', 'ok t:', 'x:', 'y:', 'z:', 'e:',
-                                                    'count ', 'printing', 'progress', 'percent',
-                                                    'layer', 'position', 'busy:', 'ok b:']):
+                                                    'count ', 'progress', 'percent',
+                                                    'position', 'busy:', 'ok b:', 'temp:']):
             return 'print_status'
 
         # Print commands (temperature control, movement, print-related)
