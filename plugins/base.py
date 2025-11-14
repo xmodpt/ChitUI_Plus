@@ -67,13 +67,15 @@ class ChitUIPlugin(ABC):
     def install_dependencies(self):
         """Install plugin dependencies using pip"""
         import subprocess
+        from loguru import logger
         deps = self.get_dependencies()
         if deps:
             for dep in deps:
                 try:
-                    subprocess.check_call(['pip', 'install', dep])
-                    return True
-                except subprocess.CalledProcessError:
+                    logger.info(f"Installing dependency: {dep}")
+                    subprocess.check_call(['pip3', 'install', dep])
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Failed to install {dep}: {e}")
                     return False
         return True
 

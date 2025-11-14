@@ -225,13 +225,31 @@
 let refreshInterval;
 let isRefreshing = false;
 
+// Show error message
+function showError(message) {
+    const container = document.querySelector('.container-fluid');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <strong>⚠️ Error:</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    container.insertBefore(alertDiv, container.firstChild);
+}
+
 // Load system information (static data)
 function loadSystemInfo() {
     fetch('/plugin/rpi_stats/system-info')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.error) {
                 console.error('Error loading system info:', data.error);
+                showError('Failed to load system information. Is psutil installed? Run: pip3 install psutil');
                 return;
             }
 
@@ -243,7 +261,10 @@ function loadSystemInfo() {
             document.getElementById('cpu-threads').textContent = data.cpu_threads || '-';
             document.getElementById('uptime').textContent = data.uptime || '-';
         })
-        .catch(error => console.error('Error loading system info:', error));
+        .catch(error => {
+            console.error('Error loading system info:', error);
+            showError(`Failed to connect to stats API: ${error.message}. Make sure psutil is installed (pip3 install psutil) and the server is running.`);
+        });
 }
 
 // Load current statistics
@@ -252,10 +273,16 @@ function loadStats() {
     isRefreshing = true;
 
     fetch('/plugin/rpi_stats/stats')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.error) {
                 console.error('Error loading stats:', data.error);
+                showError('Cannot load statistics. Please install psutil: pip3 install psutil');
                 isRefreshing = false;
                 return;
             }

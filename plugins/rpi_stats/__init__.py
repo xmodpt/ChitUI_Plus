@@ -11,13 +11,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from plugins.base import ChitUIPlugin
 from flask import Blueprint, jsonify
+from loguru import logger
 import platform
 import socket
 
 try:
     import psutil
+    PSUTIL_AVAILABLE = True
 except ImportError:
     psutil = None
+    PSUTIL_AVAILABLE = False
 
 
 class Plugin(ChitUIPlugin):
@@ -48,6 +51,11 @@ class Plugin(ChitUIPlugin):
         """Initialize the plugin"""
         self.socketio = socketio
         self.app = app
+
+        # Check if psutil is available
+        if not PSUTIL_AVAILABLE:
+            logger.warning("psutil not available - some stats will not be displayed")
+            logger.info("Install psutil with: pip install psutil")
 
         # Create Flask blueprint for plugin routes
         self.blueprint = Blueprint(
