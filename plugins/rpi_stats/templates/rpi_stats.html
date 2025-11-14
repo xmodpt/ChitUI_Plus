@@ -409,15 +409,24 @@ function refreshStats() {
     loadProcesses();
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    // Load initial data
-    loadSystemInfo();
-    refreshStats();
+// Initialize - wait a moment for DOM to be ready after injection
+(function() {
+    console.log('RPi Stats plugin initializing...');
 
-    // Auto-refresh every 5 seconds
-    refreshInterval = setInterval(refreshStats, 5000);
-});
+    // Use setTimeout to ensure DOM elements are fully rendered after injection
+    setTimeout(function() {
+        console.log('Loading RPi Stats data...');
+
+        // Load initial data
+        loadSystemInfo();
+        refreshStats();
+
+        // Auto-refresh every 5 seconds
+        refreshInterval = setInterval(refreshStats, 5000);
+
+        console.log('RPi Stats plugin initialized - auto-refresh enabled');
+    }, 100); // Small delay to ensure DOM is ready
+})();
 
 // Clean up interval when plugin is unloaded
 window.addEventListener('beforeunload', function() {
