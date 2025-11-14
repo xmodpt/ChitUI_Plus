@@ -6,7 +6,14 @@ The Raspberry Pi Stats plugin requires the `psutil` library. Install it using on
 
 ### Method 1: Automatic Installation (Recommended)
 
-The plugin will attempt to automatically install psutil when it's first loaded. Just restart ChitUI after installing the plugin.
+The plugin will **automatically** install psutil when it's first loaded. Just restart ChitUI and the plugin will:
+
+1. Check if psutil is already installed
+2. If not, try to install it using `pip3 install --user psutil` (no sudo needed)
+3. Fallback to other installation methods if needed
+4. Load the plugin with psutil enabled
+
+**No manual intervention required** in most cases!
 
 ### Method 2: Manual Installation
 
@@ -43,19 +50,27 @@ You should see output like: `psutil version: 5.9.0`
 
 ### Plugin loads but shows no data
 
-1. **Check if psutil is installed:**
-   ```bash
-   python3 -c "import psutil"
-   ```
-   If you see an error, psutil is not installed.
+1. **Check ChitUI logs:**
+   Look for messages about dependency installation when the plugin loads.
+   You should see:
+   - `Installing dependency: psutil` - Plugin is trying to install
+   - `✓ Successfully installed: psutil` - Success!
+   - `✗ Failed to install psutil` - Installation failed
 
-2. **Check ChitUI logs:**
-   Look for messages about missing dependencies when the plugin loads.
-
-3. **Install psutil and restart:**
+2. **If automatic installation failed:**
    ```bash
+   # Try user install (no sudo)
+   pip3 install --user psutil
+
+   # Or system install
    pip3 install psutil
+
    # Then restart ChitUI
+   ```
+
+3. **Verify installation:**
+   ```bash
+   python3 -c "import psutil; print('psutil OK')"
    ```
 
 ### Permission errors when installing

@@ -52,10 +52,18 @@ class Plugin(ChitUIPlugin):
         self.socketio = socketio
         self.app = app
 
-        # Check if psutil is available
+        # Try to import psutil again if it wasn't available initially
+        # (in case dependencies were just installed)
+        global psutil, PSUTIL_AVAILABLE
         if not PSUTIL_AVAILABLE:
-            logger.warning("psutil not available - some stats will not be displayed")
-            logger.info("Install psutil with: pip install psutil")
+            try:
+                import psutil
+                PSUTIL_AVAILABLE = True
+                logger.info("✓ psutil loaded successfully")
+            except ImportError:
+                logger.warning("⚠ psutil not available - some stats will not be displayed")
+                logger.info("The plugin will try to install it automatically, or you can install manually:")
+                logger.info("  pip3 install psutil")
 
         # Create Flask blueprint for plugin routes
         self.blueprint = Blueprint(

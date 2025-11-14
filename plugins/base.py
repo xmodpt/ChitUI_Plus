@@ -69,14 +69,42 @@ class ChitUIPlugin(ABC):
         import subprocess
         from loguru import logger
         deps = self.get_dependencies()
-        if deps:
-            for dep in deps:
+        if not deps:
+            return True
+
+        for dep in deps:
+            # Check if dependency is already installed
+            try:
+                module_name = dep.split('>=')[0].split('==')[0].split('[')[0].strip()
+                __import__(module_name)
+                logger.info(f"✓ Dependency already installed: {dep}")
+                continue
+            except ImportError:
+                pass
+
+            # Try to install the dependency
+            logger.info(f"Installing dependency: {dep}")
+            install_commands = [
+                ['pip3', 'install', '--user', dep],  # User install (no sudo needed)
+                ['pip3', 'install', dep],             # System install
+                ['pip', 'install', '--user', dep],    # Fallback to pip
+            ]
+
+            installed = False
+            for cmd in install_commands:
                 try:
-                    logger.info(f"Installing dependency: {dep}")
-                    subprocess.check_call(['pip3', 'install', dep])
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"Failed to install {dep}: {e}")
-                    return False
+                    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    logger.info(f"✓ Successfully installed: {dep}")
+                    installed = True
+                    break
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    continue
+
+            if not installed:
+                logger.error(f"✗ Failed to install {dep}")
+                logger.warning(f"Please install manually: pip3 install {dep}")
+                return False
+
         return True
 
     def get_blueprint(self):

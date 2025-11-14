@@ -23,15 +23,24 @@ Display comprehensive Raspberry Pi system statistics and information in ChitUI.
 
 ## Installation
 
-This plugin is included with ChitUI. It requires the `psutil` library.
+This plugin is included with ChitUI and **automatically installs** its dependencies.
 
-### Quick Install
+### Automatic Installation (Default)
+
+Simply restart ChitUI and the plugin will:
+- Automatically install `psutil` if not present
+- Load and display system statistics
+- No manual intervention needed!
+
+### Manual Installation (If Needed)
+
+If automatic installation fails, install psutil manually:
 
 ```bash
 pip3 install psutil
 ```
 
-Then restart ChitUI. The plugin will be automatically loaded.
+Then restart ChitUI.
 
 For detailed installation instructions and troubleshooting, see [INSTALL.md](INSTALL.md).
 
