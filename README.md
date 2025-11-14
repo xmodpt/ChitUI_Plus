@@ -144,9 +144,9 @@ opencv-python>=4.8.0 (optional, for camera support)
 
 # Clone the repository
 
-git clone https://github.com/xmodpt/ChitUI_v4.git
+git clone https://github.com/xmodpt/ChitUI_Plus.git
 
-cd ChitUI_v4
+cd ChitUI_Plus
 
  
 
@@ -162,7 +162,7 @@ pip3 install opencv-python
 
 # Run ChitUI
 
-sudo python3 main.py
+bash run.sh
 
 ```
 
@@ -195,7 +195,7 @@ If you want to use your Raspberry Pi as a USB flash drive for the printer:
 
    ```bash
 
-   sudo python3 main.py
+   bash run.sh
 
    ```
 
@@ -220,7 +220,7 @@ bash check_usb_gadget.sh
  
 ```bash
 
-sudo python3 main.py
+   bash run.sh
 
 ```
  
@@ -269,6 +269,12 @@ The web interface will be available at:
 4. Watch the progress bar
 
 5. Wait for confirmation (USB mode: automatic retry until file appears!)
+
+PLEASE NOTE:
+- If you upload files via this app, they will be stored in the virtual
+  USB and have to be .GOO files
+- If you upload to the printers internal storage, then you can upload .CTB
+  files
 
  
 
@@ -348,7 +354,7 @@ The web interface will be available at:
 
 **Common solutions:**
 
-- Run ChitUI as root: `sudo python3 main.py`
+- Run ChitUI as root: `bash run.sh`
 
 - Check USB cable is in DATA port (not PWR)
 
