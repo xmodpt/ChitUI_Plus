@@ -17,10 +17,6 @@ Display comprehensive Raspberry Pi system statistics and information in ChitUI.
   - Disk usage
   - Network I/O statistics
 
-- **Process Monitoring**
-  - Top 10 processes by CPU usage
-  - Top 10 processes by memory usage
-
 ## Installation
 
 This plugin is included with ChitUI and **automatically installs** its dependencies.
@@ -54,7 +50,6 @@ The plugin exposes the following HTTP endpoints:
 
 - `GET /plugin/rpi_stats/system-info` - Get static system information
 - `GET /plugin/rpi_stats/stats` - Get current real-time statistics
-- `GET /plugin/rpi_stats/processes` - Get top processes by CPU and memory usage
 
 ## Requirements
 

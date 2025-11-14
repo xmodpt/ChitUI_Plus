@@ -154,70 +154,6 @@
         </div>
     </div>
 
-    <!-- Top Processes -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <h5 class="mb-3">
-                <i class="bi bi-list-task me-2"></i>Top Processes
-            </h5>
-        </div>
-    </div>
-
-    <div class="row g-3">
-        <!-- Top CPU Processes -->
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-cpu me-1"></i>Top CPU Usage
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>PID</th>
-                                    <th>Process</th>
-                                    <th class="text-end">CPU %</th>
-                                </tr>
-                            </thead>
-                            <tbody id="top-cpu-processes">
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted">Loading...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Memory Processes -->
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-memory me-1"></i>Top Memory Usage
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>PID</th>
-                                    <th>Process</th>
-                                    <th class="text-end">MEM %</th>
-                                </tr>
-                            </thead>
-                            <tbody id="top-memory-processes">
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted">Loading...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -334,52 +270,6 @@ function loadStats() {
         });
 }
 
-// Load top processes
-function loadProcesses() {
-    fetch('/plugin/rpi_stats/processes')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                console.error('Error loading processes:', data.error);
-                return;
-            }
-
-            // Top CPU processes
-            const cpuTableBody = document.getElementById('top-cpu-processes');
-            cpuTableBody.innerHTML = '';
-            if (data.top_cpu && data.top_cpu.length > 0) {
-                data.top_cpu.forEach(proc => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${proc.pid}</td>
-                        <td><small>${proc.name}</small></td>
-                        <td class="text-end"><strong>${proc.cpu_percent}%</strong></td>
-                    `;
-                    cpuTableBody.appendChild(row);
-                });
-            } else {
-                cpuTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
-            }
-
-            // Top Memory processes
-            const memTableBody = document.getElementById('top-memory-processes');
-            memTableBody.innerHTML = '';
-            if (data.top_memory && data.top_memory.length > 0) {
-                data.top_memory.forEach(proc => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${proc.pid}</td>
-                        <td><small>${proc.name}</small></td>
-                        <td class="text-end"><strong>${proc.memory_percent}%</strong></td>
-                    `;
-                    memTableBody.appendChild(row);
-                });
-            } else {
-                memTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
-            }
-        })
-        .catch(error => console.error('Error loading processes:', error));
-}
 
 // Update progress bar
 function updateProgress(type, percent) {
@@ -406,7 +296,6 @@ function updateProgress(type, percent) {
 // Refresh all data
 function refreshStats() {
     loadStats();
-    loadProcesses();
 }
 
 // Initialize - wait a moment for DOM to be ready after injection

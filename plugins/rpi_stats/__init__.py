@@ -193,38 +193,6 @@ class Plugin(ChitUIPlugin):
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
 
-        @self.blueprint.route('/processes')
-        def get_top_processes():
-            """Get top processes by CPU and memory usage"""
-            try:
-                if not psutil:
-                    return jsonify({'error': 'psutil not available'}), 500
-
-                processes = []
-                for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
-                    try:
-                        pinfo = proc.info
-                        processes.append({
-                            'pid': pinfo['pid'],
-                            'name': pinfo['name'],
-                            'cpu_percent': round(pinfo['cpu_percent'] or 0, 1),
-                            'memory_percent': round(pinfo['memory_percent'] or 0, 1)
-                        })
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        pass
-
-                # Sort by CPU usage and get top 10
-                top_cpu = sorted(processes, key=lambda x: x['cpu_percent'], reverse=True)[:10]
-
-                # Sort by memory usage and get top 10
-                top_memory = sorted(processes, key=lambda x: x['memory_percent'], reverse=True)[:10]
-
-                return jsonify({
-                    'top_cpu': top_cpu,
-                    'top_memory': top_memory
-                })
-            except Exception as e:
-                return jsonify({'error': str(e)}), 500
 
     def get_cpu_temperature(self):
         """Get CPU temperature (Raspberry Pi specific)"""
