@@ -55,5 +55,5 @@ CREATE TABLE IF NOT EXISTS download_logs (
 -- Insert default admin user (username: admin, password: admin123)
 -- IMPORTANT: Change this password after first login!
 INSERT INTO admin_users (username, password_hash, email)
-VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@example.com')
+VALUES ('admin', '$2y$12$oaFl6QSSd2zww85TeMf.4ekv2qxfdGTUr9bFDPrI6ozBmcYwDVXjK', 'admin@example.com')
 ON DUPLICATE KEY UPDATE username=username;
