@@ -1,6 +1,45 @@
 <?php
 require_once 'config.php';
 
+// Check if database connection is available
+if ($pdo === null) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Database Error - <?php echo SITE_NAME; ?></title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <div class="alert alert-danger">
+                <h1 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Database Connection Error</h1>
+                <hr>
+                <p>Could not connect to the database. Please check:</p>
+                <ul>
+                    <li>MySQL server is running</li>
+                    <li>Database credentials in <code>config.php</code> are correct</li>
+                    <li>Database '<strong>chitui_plugins</strong>' exists (run <code>schema.sql</code> to create it)</li>
+                </ul>
+                <?php if (isset($_SESSION['db_error'])): ?>
+                    <hr>
+                    <p><strong>Error details:</strong> <?php echo escape($_SESSION['db_error']); ?></p>
+                <?php endif; ?>
+                <hr>
+                <p class="mb-0">
+                    <a href="diagnostic.php" class="btn btn-warning">Run Diagnostic Tool</a>
+                    <a href="QUICKSTART.md" class="btn btn-info">View Setup Guide</a>
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
 // Get current page
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($page - 1) * PLUGINS_PER_PAGE;

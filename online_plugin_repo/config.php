@@ -46,21 +46,9 @@ try {
 } catch (PDOException $e) {
     // Log the error but don't die immediately - allow function definitions to load
     error_log("Database connection failed: " . $e->getMessage());
-    $_SESSION['db_error'] = "Database connection failed. Please check your database configuration.";
-    // If this is not a setup/diagnostic page, show error and exit
-    if (!in_array(basename($_SERVER['PHP_SELF']), ['diagnostic.php', 'test_admin.php'])) {
-        die("
-        <h1>Database Connection Error</h1>
-        <p>Could not connect to the database. Please check:</p>
-        <ul>
-            <li>MySQL server is running</li>
-            <li>Database credentials in config.php are correct</li>
-            <li>Database 'chitui_plugins' exists (run schema.sql to create it)</li>
-        </ul>
-        <p>Error: " . htmlspecialchars($e->getMessage()) . "</p>
-        <p><a href='diagnostic.php'>Run Diagnostic Tool</a></p>
-        ");
-    }
+    $_SESSION['db_error'] = $e->getMessage();
+    // Don't die here - let individual pages handle the error gracefully
+    // This ensures all helper functions are still defined
 }
 
 /**

@@ -90,16 +90,20 @@ On Windows (XAMPP), ensure the IIS_IUSRS or NETWORK SERVICE has write permission
 
 ## Troubleshooting
 
-### Error: "Call to undefined function addPluginImage()"
+### Error: "Call to undefined function addPluginImage()" or "Call to undefined function getPluginImages()"
 
 **Cause:** Database connection failed before function definitions were loaded.
 
 **Solution:**
-1. Check that MySQL/MariaDB is running
-2. Verify database credentials in `config.php`
-3. Make sure database `chitui_plugins` exists
-4. Run `schema.sql` to create required tables
-5. Run `diagnostic.php` to identify the exact issue
+✅ **Fixed in latest version!** The application now handles database errors gracefully and displays helpful error messages instead of crashing.
+
+If you still see this error:
+1. Pull the latest code changes
+2. Check that MySQL/MariaDB is running
+3. Verify database credentials in `config.php`
+4. Make sure database `chitui_plugins` exists
+5. Run `schema.sql` to create required tables
+6. Visit any page - you'll now see a helpful error message with next steps
 
 ### Error: "Database connection failed"
 

@@ -1,6 +1,21 @@
 <?php
 require_once 'config.php';
 
+// Check if database connection is available
+if ($pdo === null) {
+    die("
+    <!DOCTYPE html>
+    <html><head><title>Database Error</title>
+    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'></head>
+    <body><div class='container mt-5'><div class='alert alert-danger'>
+    <h1>Database Connection Error</h1><hr>
+    <p>Cannot access login - database connection failed.</p>
+    <a href='diagnostic.php' class='btn btn-warning'>Run Diagnostic</a>
+    <a href='QUICKSTART.md' class='btn btn-info'>Setup Guide</a>
+    </div></div></body></html>
+    ");
+}
+
 $error = '';
 
 // If already logged in, redirect to admin

@@ -1,6 +1,11 @@
 <?php
 require_once 'config.php';
 
+// Check if database connection is available
+if ($pdo === null) {
+    die('Database connection error. Cannot download plugin.');
+}
+
 // Get plugin ID
 $pluginId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
