@@ -116,12 +116,44 @@ $totalPages = ceil($totalPlugins / PLUGINS_PER_PAGE);
         <?php else: ?>
             <div class="row">
                 <?php foreach ($plugins as $plugin): ?>
+                    <?php
+                    // Get all images for this plugin
+                    $pluginImages = getPluginImages($plugin['id']);
+                    ?>
                     <div class="col-md-4 col-lg-3 mb-4">
                         <div class="card plugin-card h-100">
-                            <?php if ($plugin['image_filename']): ?>
-                                <img src="uploads/images/<?php echo escape($plugin['image_filename']); ?>"
-                                     class="card-img-top plugin-image"
-                                     alt="<?php echo escape($plugin['name']); ?>">
+                            <?php if (!empty($pluginImages)): ?>
+                                <!-- Image Carousel -->
+                                <div id="carousel-<?php echo $plugin['id']; ?>" class="carousel slide" data-bs-ride="false">
+                                    <div class="carousel-inner">
+                                        <?php foreach ($pluginImages as $index => $img): ?>
+                                            <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                                                <img src="uploads/images/<?php echo escape($img['image_filename']); ?>"
+                                                     class="d-block w-100 plugin-image"
+                                                     alt="<?php echo escape($plugin['name']); ?> - Image <?php echo ($index + 1); ?>">
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php if (count($pluginImages) > 1): ?>
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-<?php echo $plugin['id']; ?>" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Previous</span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-<?php echo $plugin['id']; ?>" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Next</span>
+                                        </button>
+                                        <!-- Image indicators -->
+                                        <div class="carousel-indicators">
+                                            <?php foreach ($pluginImages as $index => $img): ?>
+                                                <button type="button" data-bs-target="#carousel-<?php echo $plugin['id']; ?>"
+                                                        data-bs-slide-to="<?php echo $index; ?>"
+                                                        <?php echo $index === 0 ? 'class="active"' : ''; ?>
+                                                        aria-label="Slide <?php echo ($index + 1); ?>"></button>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             <?php else: ?>
                                 <div class="card-img-top plugin-image-placeholder">
                                     <i class="bi bi-puzzle display-1"></i>

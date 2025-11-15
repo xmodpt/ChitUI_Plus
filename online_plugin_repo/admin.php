@@ -45,25 +45,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $fileSize = $_FILES['plugin_file']['size'];
             }
 
-            // Handle image upload
-            $imageFilename = null;
+            // Handle multiple image uploads (up to 3)
+            $uploadedImages = [];
+            $imageFilename = null; // Primary image for backward compatibility
 
-            if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
-                $imageExt = strtolower(pathinfo($_FILES['image_file']['name'], PATHINFO_EXTENSION));
+            for ($i = 1; $i <= 3; $i++) {
+                $fieldName = 'image_file_' . $i;
 
-                if (!in_array($imageExt, ALLOWED_IMAGE_TYPES)) {
-                    throw new Exception('Invalid image type. Allowed: ' . implode(', ', ALLOWED_IMAGE_TYPES));
-                }
+                if (isset($_FILES[$fieldName]) && $_FILES[$fieldName]['error'] === UPLOAD_ERR_OK) {
+                    $imageExt = strtolower(pathinfo($_FILES[$fieldName]['name'], PATHINFO_EXTENSION));
 
-                if ($_FILES['image_file']['size'] > MAX_IMAGE_SIZE) {
-                    throw new Exception('Image file is too large. Maximum size: ' . formatFileSize(MAX_IMAGE_SIZE));
-                }
+                    if (!in_array($imageExt, ALLOWED_IMAGE_TYPES)) {
+                        throw new Exception("Image $i: Invalid image type. Allowed: " . implode(', ', ALLOWED_IMAGE_TYPES));
+                    }
 
-                $imageFilename = uniqid('img_') . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', basename($_FILES['image_file']['name']));
-                $uploadPath = IMAGES_PATH . $imageFilename;
+                    if ($_FILES[$fieldName]['size'] > MAX_IMAGE_SIZE) {
+                        throw new Exception("Image $i: File too large. Maximum: " . formatFileSize(MAX_IMAGE_SIZE));
+                    }
 
-                if (!move_uploaded_file($_FILES['image_file']['tmp_name'], $uploadPath)) {
-                    throw new Exception('Failed to upload image file');
+                    $filename = uniqid('img_') . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', basename($_FILES[$fieldName]['name']));
+                    $uploadPath = IMAGES_PATH . $filename;
+
+                    if (!move_uploaded_file($_FILES[$fieldName]['tmp_name'], $uploadPath)) {
+                        throw new Exception("Image $i: Failed to upload");
+                    }
+
+                    $uploadedImages[] = ['filename' => $filename, 'order' => $i];
+
+                    // Set first image as primary
+                    if ($i == 1) {
+                        $imageFilename = $filename;
+                    }
                 }
             }
 
@@ -95,7 +107,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $fileSize
             ]);
 
-            $message = 'Plugin added successfully!';
+            // Get the new plugin ID
+            $newPluginId = $pdo->lastInsertId();
+
+            // Insert all uploaded images into plugin_images table
+            foreach ($uploadedImages as $img) {
+                addPluginImage($newPluginId, $img['filename'], $img['order']);
+            }
+
+            $message = 'Plugin added successfully!' . (!empty($uploadedImages) ? ' (' . count($uploadedImages) . ' image(s) uploaded)' : '');
         } catch (Exception $e) {
             $error = $e->getMessage();
         }
@@ -112,15 +132,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $plugin = $stmt->fetch();
 
             if ($plugin) {
-                // Delete files
+                // Delete plugin file
                 if ($plugin['plugin_filename'] && file_exists(PLUGINS_PATH . $plugin['plugin_filename'])) {
                     unlink(PLUGINS_PATH . $plugin['plugin_filename']);
                 }
+
+                // Delete all plugin images (from plugin_images table)
+                deletePluginImages($pluginId);
+
+                // Delete old single image if exists (backward compatibility)
                 if ($plugin['image_filename'] && file_exists(IMAGES_PATH . $plugin['image_filename'])) {
                     unlink(IMAGES_PATH . $plugin['image_filename']);
                 }
 
-                // Delete from database
+                // Delete from database (this will cascade delete plugin_images due to FK)
                 $deleteStmt = $pdo->prepare("DELETE FROM plugins WHERE id = ?");
                 $deleteStmt->execute([$pluginId]);
 
@@ -290,20 +315,32 @@ $stats = $pdo->query("
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="mb-3">
                                 <label class="form-label">Plugin File (ZIP)</label>
                                 <input type="file" class="form-control" name="plugin_file" accept=".zip">
                                 <small class="text-muted">Max size: <?php echo formatFileSize(MAX_PLUGIN_SIZE); ?></small>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Plugin Image</label>
-                                <input type="file" class="form-control" name="image_file" accept="image/*">
-                                <small class="text-muted">Max size: <?php echo formatFileSize(MAX_IMAGE_SIZE); ?></small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Plugin Images (Upload up to 3 images)</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Image 1</label>
+                                <input type="file" class="form-control" name="image_file_1" accept="image/*">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Image 2</label>
+                                <input type="file" class="form-control" name="image_file_2" accept="image/*">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Image 3</label>
+                                <input type="file" class="form-control" name="image_file_3" accept="image/*">
                             </div>
                         </div>
+                        <small class="text-muted">Max size per image: <?php echo formatFileSize(MAX_IMAGE_SIZE); ?>. Images will scroll in a carousel.</small>
                     </div>
 
                     <button type="submit" class="btn btn-success">

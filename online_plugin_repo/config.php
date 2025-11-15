@@ -84,3 +84,52 @@ function requireAdmin() {
         exit;
     }
 }
+
+/**
+ * Get all images for a plugin
+ */
+function getPluginImages($pluginId) {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT image_filename, image_order
+        FROM plugin_images
+        WHERE plugin_id = ?
+        ORDER BY image_order ASC
+    ");
+    $stmt->execute([$pluginId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Add image to plugin
+ */
+function addPluginImage($pluginId, $imageFilename, $order = 1) {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        INSERT INTO plugin_images (plugin_id, image_filename, image_order)
+        VALUES (?, ?, ?)
+    ");
+    return $stmt->execute([$pluginId, $imageFilename, $order]);
+}
+
+/**
+ * Delete plugin images
+ */
+function deletePluginImages($pluginId) {
+    global $pdo;
+
+    // Get all images first
+    $images = getPluginImages($pluginId);
+
+    // Delete files
+    foreach ($images as $img) {
+        $filePath = IMAGES_PATH . $img['image_filename'];
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+    }
+
+    // Delete from database
+    $stmt = $pdo->prepare("DELETE FROM plugin_images WHERE plugin_id = ?");
+    return $stmt->execute([$pluginId]);
+}

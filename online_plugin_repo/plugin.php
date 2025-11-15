@@ -83,12 +83,43 @@ if (!is_array($dependencies)) {
                     <p class="lead text-muted"><?php echo escape($plugin['description']); ?></p>
                 </div>
 
-                <!-- Plugin Image -->
-                <?php if ($plugin['image_filename']): ?>
+                <!-- Plugin Images Carousel -->
+                <?php
+                // Get all images for this plugin
+                $pluginImages = getPluginImages($plugin['id']);
+                ?>
+                <?php if (!empty($pluginImages)): ?>
                     <div class="card mb-4">
-                        <img src="uploads/images/<?php echo escape($plugin['image_filename']); ?>"
-                             class="card-img-top plugin-detail-image"
-                             alt="<?php echo escape($plugin['name']); ?>">
+                        <div id="carousel-detail-<?php echo $plugin['id']; ?>" class="carousel slide" data-bs-ride="false">
+                            <div class="carousel-inner">
+                                <?php foreach ($pluginImages as $index => $img): ?>
+                                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                                        <img src="uploads/images/<?php echo escape($img['image_filename']); ?>"
+                                             class="d-block w-100 plugin-detail-image"
+                                             alt="<?php echo escape($plugin['name']); ?> - Image <?php echo ($index + 1); ?>">
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php if (count($pluginImages) > 1): ?>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#carousel-detail-<?php echo $plugin['id']; ?>" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#carousel-detail-<?php echo $plugin['id']; ?>" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
+                                <!-- Image indicators -->
+                                <div class="carousel-indicators">
+                                    <?php foreach ($pluginImages as $index => $img): ?>
+                                        <button type="button" data-bs-target="#carousel-detail-<?php echo $plugin['id']; ?>"
+                                                data-bs-slide-to="<?php echo $index; ?>"
+                                                <?php echo $index === 0 ? 'class="active"' : ''; ?>
+                                                aria-label="Slide <?php echo ($index + 1); ?>"></button>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php endif; ?>
 

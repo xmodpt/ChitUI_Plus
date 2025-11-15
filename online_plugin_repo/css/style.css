@@ -320,6 +320,80 @@ code {
     margin-bottom: 1rem;
 }
 
+/* Carousel Styles */
+.carousel {
+    background-color: #343a40;
+}
+
+.carousel-inner {
+    height: 200px;
+}
+
+.plugin-detail-image ~ .carousel-inner {
+    height: 400px;
+}
+
+.carousel-control-prev,
+.carousel-control-next {
+    width: 10%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.carousel:hover .carousel-control-prev,
+.carousel:hover .carousel-control-next {
+    opacity: 0.8;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    opacity: 1;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    padding: 10px;
+    width: 2rem;
+    height: 2rem;
+}
+
+.carousel-indicators {
+    margin-bottom: 5px;
+}
+
+.carousel-indicators [data-bs-target] {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: none;
+    margin: 0 3px;
+}
+
+.carousel-indicators .active {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+/* Carousel responsive */
+@media (max-width: 768px) {
+    .carousel-inner {
+        height: 150px;
+    }
+
+    .carousel-control-prev,
+    .carousel-control-next {
+        opacity: 0.5;
+    }
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
 /* Print Styles */
 @media print {
     .navbar,
@@ -332,5 +406,11 @@ code {
     .card {
         border: 1px solid #000;
         page-break-inside: avoid;
+    }
+
+    .carousel-control-prev,
+    .carousel-control-next,
+    .carousel-indicators {
+        display: none !important;
     }
 }
