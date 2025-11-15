@@ -52,6 +52,18 @@ CREATE TABLE IF NOT EXISTS download_logs (
     INDEX idx_downloaded (downloaded_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Plugin images table (for multiple images support)
+CREATE TABLE IF NOT EXISTS plugin_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    plugin_id INT NOT NULL,
+    image_filename VARCHAR(255) NOT NULL,
+    image_order TINYINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (plugin_id) REFERENCES plugins(id) ON DELETE CASCADE,
+    INDEX idx_plugin (plugin_id),
+    INDEX idx_order (image_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Insert default admin user (username: admin, password: admin123)
 -- IMPORTANT: Change this password after first login!
 INSERT INTO admin_users (username, password_hash, email)
