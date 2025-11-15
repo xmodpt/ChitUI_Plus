@@ -1,0 +1,114 @@
+# ChitUI Plugin Repository - Nginx Configuration Sample
+#
+# Copy this to /etc/nginx/sites-available/chitui_plugins
+# Then create symlink: ln -s /etc/nginx/sites-available/chitui_plugins /etc/nginx/sites-enabled/
+# Test config: nginx -t
+# Reload: systemctl reload nginx
+
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name yourserver.com;  # Change to your domain
+    root /var/www/html/chitui_plugins;  # Change to your path
+
+    index index.php index.html;
+
+    # Logs
+    access_log /var/log/nginx/chitui_plugins_access.log;
+    error_log /var/log/nginx/chitui_plugins_error.log;
+
+    # Max upload size
+    client_max_body_size 50M;
+
+    # Disable directory listing
+    autoindex off;
+
+    # Main location
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP processing
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;  # Adjust PHP version
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+
+        # Increase timeouts for large uploads
+        fastcgi_read_timeout 300;
+        fastcgi_send_timeout 300;
+    }
+
+    # Protect sensitive files
+    location ~ ^/(config\.php|schema\.sql) {
+        deny all;
+        return 404;
+    }
+
+    # Protect hidden files
+    location ~ /\. {
+        deny all;
+        return 404;
+    }
+
+    # Allow uploads access
+    location /uploads/ {
+        # Prevent PHP execution in uploads
+        location ~ \.php$ {
+            deny all;
+            return 404;
+        }
+    }
+
+    # Static files caching
+    location ~* \.(jpg|jpeg|png|gif|webp|ico|css|js|woff|woff2|ttf|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss;
+}
+
+# SSL Configuration (optional but recommended)
+# Uncomment and configure after obtaining SSL certificate
+#
+# server {
+#     listen 443 ssl http2;
+#     listen [::]:443 ssl http2;
+#
+#     server_name yourserver.com;
+#     root /var/www/html/chitui_plugins;
+#
+#     # SSL certificates (use Let's Encrypt or other)
+#     ssl_certificate /etc/letsencrypt/live/yourserver.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/yourserver.com/privkey.pem;
+#
+#     # SSL configuration
+#     ssl_protocols TLSv1.2 TLSv1.3;
+#     ssl_ciphers HIGH:!aNULL:!MD5;
+#     ssl_prefer_server_ciphers on;
+#
+#     # ... (rest of configuration same as above)
+# }
+#
+# # Redirect HTTP to HTTPS
+# server {
+#     listen 80;
+#     listen [::]:80;
+#     server_name yourserver.com;
+#     return 301 https://$server_name$request_uri;
+# }

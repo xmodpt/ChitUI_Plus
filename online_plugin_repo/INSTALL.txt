@@ -1,0 +1,81 @@
+================================================================================
+ChitUI Plugin Repository - Quick Installation Guide
+================================================================================
+
+REQUIREMENTS:
+- PHP 7.4+ (PHP 8.0+ recommended)
+- MySQL 5.7+ or MariaDB 10.2+
+- Apache or Nginx web server
+- PDO, PDO_MySQL, GD, FileInfo extensions
+
+================================================================================
+INSTALLATION STEPS:
+================================================================================
+
+1. UPLOAD FILES
+   Upload all files to your web server directory
+   Example: /var/www/html/chitui_plugins/
+
+2. SET PERMISSIONS
+   chmod -R 755 uploads/
+   chown -R www-data:www-data uploads/
+
+3. CREATE DATABASE
+   mysql -u root -p < schema.sql
+
+4. CONFIGURE
+   Edit config.php:
+   - Update DB_HOST, DB_NAME, DB_USER, DB_PASS
+   - Update SITE_URL to your domain
+
+5. TEST
+   Visit: http://yourserver.com/chitui_plugins/
+
+================================================================================
+DEFAULT ADMIN CREDENTIALS:
+================================================================================
+
+Username: admin
+Password: admin123
+
+IMPORTANT: Change password immediately after first login!
+
+================================================================================
+ADMIN PANEL ACCESS:
+================================================================================
+
+Login URL: http://yourserver.com/chitui_plugins/login.php
+Admin URL: http://yourserver.com/chitui_plugins/admin.php
+
+================================================================================
+TROUBLESHOOTING:
+================================================================================
+
+1. Database Connection Error:
+   - Verify MySQL is running
+   - Check credentials in config.php
+   - Ensure database exists
+
+2. File Upload Errors:
+   - Check uploads/ directory permissions
+   - Verify PHP upload limits in php.ini:
+     upload_max_filesize = 50M
+     post_max_size = 50M
+
+3. Images Not Showing:
+   - Check file exists in uploads/images/
+   - Verify permissions (755)
+
+================================================================================
+SECURITY RECOMMENDATIONS:
+================================================================================
+
+1. Use HTTPS (install SSL certificate)
+2. Change default admin password
+3. Restrict uploads/ directory permissions
+4. Keep PHP and MySQL updated
+5. Regular database backups
+
+================================================================================
+For detailed documentation, see README.md
+================================================================================
