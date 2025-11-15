@@ -27,8 +27,9 @@ body {
 
 .plugin-image {
     height: 200px;
-    object-fit: cover;
-    background-color: #f8f9fa;
+    width: 100%;
+    object-fit: contain;
+    background-color: #343a40;
 }
 
 .plugin-image-placeholder {
@@ -42,8 +43,10 @@ body {
 }
 
 .plugin-detail-image {
+    width: 100%;
     max-height: 400px;
-    object-fit: cover;
+    object-fit: contain;
+    background-color: #343a40;
     border-radius: 8px;
 }
 
