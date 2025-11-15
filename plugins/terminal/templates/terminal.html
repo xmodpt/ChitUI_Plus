@@ -36,7 +36,7 @@
           type="text"
           class="form-control"
           id="terminalInput"
-          placeholder="Enter raw command (JSON)..."
+          placeholder='Enter: 0 or 1 or {"Cmd":258,"Data":{"Url":"/usb"}}'
           autocomplete="off"
         >
         <button class="btn btn-primary" id="terminalSend">
@@ -71,19 +71,21 @@
 }
 
 .terminal-message {
-  margin-bottom: 0.5rem;
-  white-space: pre-wrap;
-  word-break: break-all;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+  font-size: 0.85rem;
 }
 
 .terminal-timestamp {
   color: #666;
-  margin-right: 0.5rem;
+  white-space: nowrap;
 }
 
 .terminal-direction {
   font-weight: bold;
+  margin-left: 0.5rem;
   margin-right: 0.5rem;
+  white-space: nowrap;
 }
 
 .terminal-direction.send {
@@ -97,6 +99,12 @@
 .terminal-printer-id {
   color: #00bfff;
   margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.terminal-content {
+  color: #e0e0e0;
+  word-wrap: break-word;
 }
 
 .terminal-input-container {
@@ -193,20 +201,25 @@
     const command = input.value.trim();
     if (!command) return;
 
-    if (!currentPrinter) {
-      addLocalMessage('ERROR: No printer selected');
+    // Check if currentPrinter is defined (from main chitui.js)
+    if (typeof currentPrinter === 'undefined' || !currentPrinter) {
+      addLocalMessage('ERROR: No printer selected. Please select a printer first.');
       return;
     }
+
+    console.log('Terminal: Sending command to printer', currentPrinter, 'command:', command);
 
     // Try to parse as JSON
     try {
       const parsed = JSON.parse(command);
+      console.log('Terminal: Parsed as JSON:', parsed);
       socket.emit('terminal_send_command', {
         printer_id: currentPrinter,
         command: parsed
       });
     } catch (e) {
       // If not JSON, send as-is
+      console.log('Terminal: Sending as plain command:', command);
       socket.emit('terminal_send_command', {
         printer_id: currentPrinter,
         command: command

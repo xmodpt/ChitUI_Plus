@@ -96,8 +96,31 @@ class Plugin(ChitUIPlugin):
             if not printer_id or not command:
                 return {'ok': False, 'msg': 'Missing printer_id or command'}
 
+            # Format command for display
+            if isinstance(command, dict):
+                cmd_display = f"Cmd: {command.get('Cmd', '?')}"
+                if 'Data' in command and command['Data']:
+                    cmd_display += f" | Data: {command['Data']}"
+            elif isinstance(command, (int, str)):
+                # Simple command number
+                cmd_names = {
+                    0: "Get Status",
+                    1: "Get Attributes",
+                    128: "Start Print",
+                    129: "Pause Print",
+                    130: "Stop Print",
+                    131: "Resume Print",
+                    258: "Get File List",
+                    320: "Get History"
+                }
+                cmd_num = int(command) if isinstance(command, str) and command.isdigit() else command
+                cmd_name = cmd_names.get(cmd_num, f"Cmd {cmd_num}")
+                cmd_display = cmd_name
+            else:
+                cmd_display = str(command)
+
             # Log the outgoing command
-            self.log_message(printer_id, 'SEND', command)
+            self.log_message(printer_id, 'SEND', cmd_display)
 
             # Emit to main app for sending to printer
             socketio.emit('terminal_command', {
@@ -111,11 +134,7 @@ class Plugin(ChitUIPlugin):
         """Log incoming printer messages"""
         try:
             # Format the message for display
-            if isinstance(message, dict):
-                import json
-                msg_str = json.dumps(message, indent=2)
-            else:
-                msg_str = str(message)
+            msg_str = self.format_message(message)
 
             # Apply filtering if enabled
             if self.filter_enabled:
@@ -127,6 +146,260 @@ class Plugin(ChitUIPlugin):
         except Exception as e:
             print(f"Error logging message: {e}")
 
+    def format_message(self, message):
+        """Format message for readable terminal display"""
+        if not isinstance(message, dict):
+            return str(message)
+
+        # Extract readable content from message dictionary
+        # Common message formats from 3D printer firmware:
+
+        # SDCP Protocol Messages (ELEGOO printers)
+        if 'Topic' in message:
+            topic = message.get('Topic', '')
+
+            # Response messages to commands
+            if 'response' in topic.lower():
+                # Extract the Data field from the response
+                if 'Data' in message:
+                    response_data = message['Data']
+                    # Check what type of response this is
+                    if isinstance(response_data, dict):
+                        if 'Status' in response_data:
+                            return self.format_sdcp_status(response_data['Status'])
+                        elif 'Attributes' in response_data:
+                            return self.format_sdcp_attributes(response_data['Attributes'])
+                        elif 'FileList' in response_data:
+                            files = response_data.get('FileList', [])
+                            return f"Files: {len(files)} items"
+                        else:
+                            # Generic response
+                            import json
+                            return f"Response: {json.dumps(response_data)}"
+                return "Response received"
+
+            # Status messages
+            if 'status' in topic.lower() and 'Status' in message:
+                return self.format_sdcp_status(message['Status'])
+
+            # Attribute messages (device info)
+            if 'attributes' in topic.lower() and 'Attributes' in message:
+                return self.format_sdcp_attributes(message['Attributes'])
+
+            # Other SDCP messages - show topic
+            return f"SDCP: {topic}"
+
+        # Command sent to printer
+        if 'command' in message:
+            cmd = message['command']
+            if isinstance(cmd, dict):
+                # Handle nested command structure
+                return self.format_command_dict(cmd)
+            return str(cmd)
+
+        # Response from printer
+        if 'response' in message:
+            resp = message['response']
+            if isinstance(resp, str):
+                return resp
+            elif isinstance(resp, dict):
+                return self.format_command_dict(resp)
+
+        # Raw line from printer
+        if 'line' in message:
+            return str(message['line'])
+
+        # Temperature report
+        if 'temps' in message or 'temperature' in message:
+            return self.format_temperature(message)
+
+        # Status update
+        if 'status' in message:
+            status = message['status']
+            if isinstance(status, str):
+                return f"Status: {status}"
+            elif isinstance(status, dict):
+                return self.format_command_dict(status)
+
+        # Print progress
+        if 'progress' in message:
+            progress = message['progress']
+            return f"Progress: {progress}%"
+
+        # File operation
+        if 'file' in message:
+            file_name = message['file']
+            operation = message.get('operation', 'unknown')
+            return f"{operation.upper()}: {file_name}"
+
+        # Error message
+        if 'error' in message:
+            return f"ERROR: {message['error']}"
+
+        # Generic message with 'msg' or 'message' field
+        if 'msg' in message:
+            return str(message['msg'])
+        if 'message' in message and isinstance(message['message'], str):
+            return message['message']
+
+        # If message has only one key, display its value
+        if len(message) == 1:
+            key, value = list(message.items())[0]
+            if isinstance(value, str):
+                return value
+            elif isinstance(value, dict):
+                return self.format_command_dict(value)
+
+        # Fallback: display as JSON for unknown formats
+        import json
+        return json.dumps(message, indent=2)
+
+    def format_command_dict(self, cmd_dict):
+        """Format command dictionary for display"""
+        if not isinstance(cmd_dict, dict):
+            return str(cmd_dict)
+
+        # G-code or M-code command
+        if 'code' in cmd_dict:
+            code = cmd_dict['code']
+            params = cmd_dict.get('params', {})
+            param_str = ' '.join(f"{k}{v}" for k, v in params.items())
+            return f"{code} {param_str}".strip()
+
+        # Command with type and data
+        if 'type' in cmd_dict and 'data' in cmd_dict:
+            return f"{cmd_dict['type']}: {cmd_dict['data']}"
+
+        # Simple key-value pairs
+        parts = []
+        for k, v in cmd_dict.items():
+            if isinstance(v, (str, int, float)):
+                parts.append(f"{k}={v}")
+
+        if parts:
+            return ' '.join(parts)
+
+        # Fallback to JSON
+        import json
+        return json.dumps(cmd_dict)
+
+    def format_temperature(self, temp_dict):
+        """Format temperature data for display"""
+        parts = []
+
+        # Hotend temperature
+        if 'tool0' in temp_dict or 't0' in temp_dict:
+            temp_data = temp_dict.get('tool0', temp_dict.get('t0'))
+            if isinstance(temp_data, dict):
+                actual = temp_data.get('actual', temp_data.get('current', '?'))
+                target = temp_data.get('target', '?')
+                parts.append(f"T0:{actual}/{target}")
+            else:
+                parts.append(f"T0:{temp_data}")
+
+        # Bed temperature
+        if 'bed' in temp_dict or 'b' in temp_dict:
+            temp_data = temp_dict.get('bed', temp_dict.get('b'))
+            if isinstance(temp_data, dict):
+                actual = temp_data.get('actual', temp_data.get('current', '?'))
+                target = temp_data.get('target', '?')
+                parts.append(f"B:{actual}/{target}")
+            else:
+                parts.append(f"B:{temp_data}")
+
+        if parts:
+            return ' '.join(parts)
+
+        # Fallback
+        import json
+        return json.dumps(temp_dict)
+
+    def format_sdcp_status(self, status_dict):
+        """Format SDCP status messages for ELEGOO printers"""
+        parts = []
+
+        # Print information (most important)
+        if 'PrintInfo' in status_dict:
+            print_info = status_dict['PrintInfo']
+            status_code = print_info.get('Status', 'Unknown')
+
+            # Map status codes to readable names
+            status_names = {
+                0: 'Idle',
+                1: 'Printing',
+                2: 'Paused',
+                3: 'Complete',
+                8: 'Idle',  # Another idle state
+                # Add more as discovered
+            }
+            status_name = status_names.get(status_code, f'Status{status_code}')
+
+            current_layer = print_info.get('CurrentLayer', 0)
+            total_layer = print_info.get('TotalLayer', 0)
+            filename = print_info.get('Filename', 'N/A')
+            error_num = print_info.get('ErrorNumber', 0)
+
+            parts.append(f"Status: {status_name}")
+
+            if total_layer > 0:
+                progress = (current_layer / total_layer * 100) if total_layer > 0 else 0
+                parts.append(f"Layer: {current_layer}/{total_layer} ({progress:.1f}%)")
+
+            if filename and filename != 'N/A':
+                parts.append(f"File: {filename}")
+
+            if error_num != 0:
+                parts.append(f"ERROR: {error_num}")
+
+        # Temperature
+        if 'TempOfUVLED' in status_dict:
+            temp = status_dict['TempOfUVLED']
+            parts.append(f"LED Temp: {temp:.1f}°C")
+
+        # Release film position
+        if 'ReleaseFilm' in status_dict:
+            film_pos = status_dict['ReleaseFilm']
+            parts.append(f"Film: {film_pos}")
+
+        return ' | '.join(parts) if parts else 'Status: OK'
+
+    def format_sdcp_attributes(self, attr_dict):
+        """Format SDCP attributes messages for ELEGOO printers"""
+        parts = []
+
+        # Machine name and firmware
+        machine_name = attr_dict.get('MachineName', attr_dict.get('Name', 'Unknown'))
+        firmware = attr_dict.get('FirmwareVersion', 'N/A')
+
+        parts.append(f"{machine_name}")
+        parts.append(f"FW: {firmware}")
+
+        # Network info
+        if 'MainboardIP' in attr_dict:
+            ip = attr_dict['MainboardIP']
+            parts.append(f"IP: {ip}")
+
+        # Resolution
+        if 'Resolution' in attr_dict:
+            res = attr_dict['Resolution']
+            parts.append(f"Res: {res}")
+
+        # Remaining memory
+        if 'RemainingMemory' in attr_dict:
+            mem_bytes = attr_dict['RemainingMemory']
+            mem_gb = mem_bytes / (1024**3)
+            parts.append(f"Free: {mem_gb:.2f}GB")
+
+        # Device status summary
+        if 'DevicesStatus' in attr_dict:
+            devices = attr_dict['DevicesStatus']
+            # Only show if there's a problem
+            failed_devices = [k for k, v in devices.items() if v != 1]
+            if failed_devices:
+                parts.append(f"DEVICE ERRORS: {', '.join(failed_devices)}")
+
+        return ' | '.join(parts)
+
     def categorize_message(self, message):
         """Categorize message type for filtering"""
         msg_lower = message.lower()
@@ -134,6 +407,20 @@ class Plugin(ChitUIPlugin):
         # System errors
         if any(err in msg_lower for err in ['error', 'err:', 'fail', 'warning', 'warn:', 'exception', 'fault']):
             return 'system_error'
+
+        # SDCP Protocol messages (ELEGOO printers)
+        if any(sdcp in msg_lower for sdcp in ['status:', 'layer:', 'file:', 'idle', 'printing', 'paused', 'complete']):
+            return 'print_status'
+
+        # SDCP device attributes (firmware, model, IP, etc.)
+        if any(attr in msg_lower for attr in ['fw:', 'ip:', 'res:', 'free:', 'saturn', 'mars', 'jupiter', 'elegoo']):
+            return 'system_command'
+
+        # SDCP command names and responses
+        if any(cmd in msg_lower for cmd in ['get status', 'get attributes', 'get file', 'get history',
+                                              'start print', 'pause print', 'stop print', 'resume print',
+                                              'response:', 'files:', 'response received']):
+            return 'print_command'
 
         # System commands (M codes and system G-codes)
         if any(cmd in msg_lower for cmd in ['m110', 'm111', 'm112', 'm115', 'm117', 'm118', 'm119',
@@ -143,8 +430,8 @@ class Plugin(ChitUIPlugin):
 
         # Print status (temperature, position, status reports)
         if any(status in msg_lower for status in ['t:', 'b:', 'ok t:', 'x:', 'y:', 'z:', 'e:',
-                                                    'count ', 'printing', 'progress', 'percent',
-                                                    'layer', 'position', 'busy:', 'ok b:']):
+                                                    'count ', 'progress', 'percent',
+                                                    'position', 'busy:', 'ok b:', 'temp:']):
             return 'print_status'
 
         # Print commands (temperature control, movement, print-related)

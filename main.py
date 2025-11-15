@@ -1292,6 +1292,60 @@ def sio_handle_get_task_details(data):
     send_printer_cmd(data['id'], 321, {"Id": [data['taskId']]})
 
 
+@socketio.on('terminal_command')
+def sio_handle_terminal_command(data):
+    """Handle commands from terminal plugin"""
+    printer_id = data.get('printer_id')
+    command = data.get('command')
+
+    logger.debug(f'terminal_command >> printer:{printer_id} cmd:{command}')
+
+    if not printer_id:
+        logger.error("No printer_id provided in terminal command")
+        return
+
+    # Parse command - could be JSON dict or simple command number
+    try:
+        if isinstance(command, dict):
+            # Already parsed JSON with Cmd and optional Data
+            cmd = command.get('Cmd', command.get('cmd'))
+            cmd_data = command.get('Data', command.get('data', {}))
+        elif isinstance(command, str):
+            # Try to parse as JSON first
+            try:
+                parsed = json.loads(command)
+                cmd = parsed.get('Cmd', parsed.get('cmd'))
+                cmd_data = parsed.get('Data', parsed.get('data', {}))
+            except json.JSONDecodeError:
+                # Not JSON, treat as command number
+                cmd = int(command)
+                cmd_data = {}
+        elif isinstance(command, int):
+            cmd = command
+            cmd_data = {}
+        else:
+            logger.error(f"Invalid command format: {command}")
+            return
+
+        # Validate cmd is a number
+        if cmd is None:
+            logger.error(f"Could not extract command number from: {command}")
+            return
+
+        # Send the command
+        logger.info(f"Terminal: Sending command {cmd} with data {cmd_data} to printer {printer_id}")
+        result = send_printer_cmd(printer_id, cmd, cmd_data)
+        if result:
+            logger.info(f"Terminal command sent successfully: Cmd={cmd}")
+        else:
+            logger.error(f"Failed to send terminal command: Cmd={cmd}")
+
+    except ValueError as e:
+        logger.error(f"Invalid command number: {command} - {e}")
+    except Exception as e:
+        logger.error(f"Failed to parse terminal command: {e}")
+
+
 # ============ PRINTER CONTROL FUNCTIONS ============
 
 def get_printer_status(id):
